@@ -16,15 +16,28 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes, LogsActivity;
 
     protected $fillable = [
-        'name', 'email', 'phone', 'password', 'avatar',
-        'status', 'gender', 'date_of_birth', 'address',
-        'city', 'country', 'employee_id', 'student_id',
-        'last_login_at', 'last_login_ip', 'is_online',
+        'name',
+        'email',
+        'phone',
+        'password',
+        'avatar',
+        'status',
+        'gender',
+        'date_of_birth',
+        'address',
+        'city',
+        'country',
+        'employee_id',
+        'student_id',
+        'last_login_at',
+        'last_login_ip',
+        'is_online',
         'email_verified_at',
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -51,20 +64,20 @@ class User extends Authenticatable
         return $this->hasMany(PageVisit::class);
     }
 
-    public function studentProfile()
-    {
-        return $this->hasOne(StudentProfile::class);
-    }
+    // public function studentProfile()
+    // {
+    //     return $this->hasOne(StudentProfile::class);
+    // }
 
-    public function facultyProfile()
-    {
-        return $this->hasOne(FacultyProfile::class);
-    }
+    // public function facultyProfile()
+    // {
+    //     return $this->hasOne(FacultyProfile::class);
+    // }
 
-    public function staffProfile()
-    {
-        return $this->hasOne(StaffProfile::class);
-    }
+    // public function staffProfile()
+    // {
+    //     return $this->hasOne(StaffProfile::class);
+    // }
 
     // ── Helpers ───────────────────────────────────────────────
     public function getAvatarUrlAttribute()

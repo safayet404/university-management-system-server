@@ -302,16 +302,20 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'total'      => User::count(),
-                'active'     => User::where('status', 'active')->count(),
-                'inactive'   => User::where('status', 'inactive')->count(),
-                'suspended'  => User::where('status', 'suspended')->count(),
-                'online'     => User::where('is_online', true)->count(),
-                'by_role'    => \Spatie\Permission\Models\Role::withCount('users')->get()->map(fn($r) => [
-                    'role'  => $r->name,
-                    'count' => $r->users_count,
-                ]),
+                'total'          => User::count(),
+                'active'         => User::where('status', 'active')->count(),
+                'inactive'       => User::where('status', 'inactive')->count(),
+                'suspended'      => User::where('status', 'suspended')->count(),
+                'online'         => User::where('is_online', true)->count(),
+                'total_users'    => User::count(),
+                'total_students' => User::role('student')->count(),
+                'total_faculty'  => User::role('faculty')->count(),
+                'today_activity' => \App\Models\PageVisit::whereDate('created_at', today())->count(),
                 'new_this_month' => User::whereMonth('created_at', now()->month)->count(),
+                'by_role'        => \Spatie\Permission\Models\Role::get()->map(fn($r) => [
+                    'role'  => $r->name,
+                    'count' => $r->users()->count(),
+                ]),
             ],
         ]);
     }
