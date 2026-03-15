@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -17,14 +18,13 @@ class RoleController extends Controller
     {
         self::logVisit('roles', 'list', 'visited', 'Visited roles list');
 
-        $roles = Role::withCount('users')
-            ->with('permissions')
+        $roles = Role::with('permissions')
             ->orderBy('name')
             ->get()
             ->map(fn($role) => [
                 'id'              => $role->id,
                 'name'            => $role->name,
-                'users_count'     => $role->users_count,
+                'users_count'     => \DB::table('model_has_roles')->where('role_id', $role->id)->count(),
                 'permissions'     => $role->permissions->pluck('name'),
                 'permissions_count' => $role->permissions->count(),
                 'created_at'      => $role->created_at->format('Y-m-d H:i:s'),
