@@ -10,6 +10,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\FacultyController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\EnrollmentController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -82,6 +84,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}',          [FacultyController::class, 'update']);
         Route::delete('/{id}',       [FacultyController::class, 'destroy']);
         Route::patch('/{id}/status', [FacultyController::class, 'updateStatus']);
+    });
+
+    // Courses
+    Route::prefix('courses')->group(function () {
+        Route::get('/stats',   [CourseController::class, 'stats']);
+        Route::get('/',        [CourseController::class, 'index']);
+        Route::post('/',       [CourseController::class, 'store']);
+        Route::get('/{id}',    [CourseController::class, 'show']);
+        Route::put('/{id}',    [CourseController::class, 'update']);
+        Route::delete('/{id}', [CourseController::class, 'destroy']);
+    });
+
+    // Enrollments
+    Route::prefix('enrollments')->group(function () {
+        Route::get('/stats',               [EnrollmentController::class, 'stats']);
+        Route::post('/bulk-approve',       [EnrollmentController::class, 'bulkApprove']);
+        Route::get('/',                    [EnrollmentController::class, 'index']);
+        Route::post('/',                   [EnrollmentController::class, 'store']);
+        Route::patch('/{id}/approve',      [EnrollmentController::class, 'approve']);
+        Route::patch('/{id}/reject',       [EnrollmentController::class, 'reject']);
+        Route::patch('/{id}/drop',         [EnrollmentController::class, 'drop']);
     });
 
     // Roles
