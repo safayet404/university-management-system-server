@@ -17,7 +17,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\AdmissionController;
-use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\TimetableController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -163,21 +163,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/enroll',     [AdmissionController::class, 'enroll']);
     });
 
-    Route::prefix('library')->group(function () {
-        Route::get('/stats',              [LibraryController::class, 'stats']);
-        // Books
-        Route::get('/books',              [LibraryController::class, 'books']);
-        Route::post('/books',             [LibraryController::class, 'storeBook']);
-        Route::put('/books/{id}',         [LibraryController::class, 'updateBook']);
-        Route::delete('/books/{id}',      [LibraryController::class, 'destroyBook']);
-        // Members
-        Route::get('/members/search',     [LibraryController::class, 'searchMembers']);
-        Route::get('/members',            [LibraryController::class, 'members']);
-        Route::post('/members',           [LibraryController::class, 'storeMember']);
-        // Issues
-        Route::get('/issues',             [LibraryController::class, 'issues']);
-        Route::post('/issues',            [LibraryController::class, 'issueBook']);
-        Route::patch('/issues/{id}/return', [LibraryController::class, 'returnBook']);
+    Route::prefix('timetable')->group(function () {
+        Route::get('/stats',   [TimetableController::class, 'stats']);
+        Route::get('/rooms',   [TimetableController::class, 'rooms']);
+        Route::get('/list',    [TimetableController::class, 'list']);
+        Route::get('/',        [TimetableController::class, 'index']);
+        Route::post('/',       [TimetableController::class, 'store']);
+        Route::put('/{id}',    [TimetableController::class, 'update']);
+        Route::delete('/{id}', [TimetableController::class, 'destroy']);
     });
 
     Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
