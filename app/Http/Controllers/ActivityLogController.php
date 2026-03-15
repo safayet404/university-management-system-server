@@ -27,14 +27,15 @@ class ActivityLogController extends Controller
         if ($request->filled('date_to'))   $query->whereDate('created_at', '<=', $request->date_to);
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q
-                ->where('description', 'like', "%{$s}%")
-                ->orWhere('module', 'like', "%{$s}%")
-                ->orWhere('ip_address', 'like', "%{$s}%")
+            $query->where(
+                fn($q) => $q
+                    ->where('description', 'like', "%{$s}%")
+                    ->orWhere('module', 'like', "%{$s}%")
+                    ->orWhere('ip_address', 'like', "%{$s}%")
             );
         }
 
-        $logs = $query->paginate($request->get('per_page', 20));
+        $logs = $query->paginate($request->input('per_page', 20));
 
         return response()->json([
             'success'    => true,
@@ -88,7 +89,7 @@ class ActivityLogController extends Controller
     {
         $logs = PageVisit::where('user_id', $userId)
             ->latest()
-            ->paginate($request->get('per_page', 20));
+            ->paginate($request->input('per_page', 20));
 
         return response()->json([
             'success'    => true,
