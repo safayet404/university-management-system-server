@@ -18,6 +18,7 @@ use App\Http\Controllers\GradeController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\NotificationController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -171,6 +172,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/',       [TimetableController::class, 'store']);
         Route::put('/{id}',    [TimetableController::class, 'update']);
         Route::delete('/{id}', [TimetableController::class, 'destroy']);
+    });
+
+    Route::prefix('notifications')->group(function () {
+        Route::get('/unread-count',    [NotificationController::class, 'unreadCount']);
+        Route::get('/recent',          [NotificationController::class, 'recent']);
+        Route::get('/stats',           [NotificationController::class, 'stats']);
+        Route::post('/send',           [NotificationController::class, 'send']);
+        Route::patch('/mark-all-read', [NotificationController::class, 'markAllRead']);
+        Route::delete('/clear-all',    [NotificationController::class, 'clearAll']);
+        Route::get('/',                [NotificationController::class, 'index']);
+        Route::patch('/{id}/read',     [NotificationController::class, 'markRead']);
+        Route::delete('/{id}',         [NotificationController::class, 'destroy']);
     });
 
     Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
