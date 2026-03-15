@@ -63,11 +63,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(PageVisit::class);
     }
-
-    // public function studentProfile()
-    // {
-    //     return $this->hasOne(StudentProfile::class);
-    // }
+    public function studentProfile()
+    {
+        return $this->hasOne(StudentProfile::class);
+    }
 
     // public function facultyProfile()
     // {

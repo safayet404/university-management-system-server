@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -13,18 +14,27 @@ class AuthController extends Controller
     use LogsPageVisit;
 
     // ── POST /api/auth/login ──────────────────────────────────
+    // Supports login by: email, employee_id, or student_id
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'login'    => 'required_without:email|string|nullable',
+            'email'    => 'required_without:login|string|nullable',
             'password' => 'required|string',
         ]);
 
-        $user = User::with('roles.permissions')->where('email', $request->email)->first();
+        $identifier = $request->login ?? $request->email;
+
+        // Find user by email, employee_id, or student_id
+        $user = User::with('roles.permissions')
+            ->where('email', $identifier)
+            ->orWhere('employee_id', $identifier)
+            ->orWhere('student_id', $identifier)
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'login' => ['The provided credentials are incorrect.'],
             ]);
         }
 
@@ -35,24 +45,21 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Update last login
         $user->update([
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
             'is_online'     => true,
         ]);
 
-        // Create token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Log login
         self::logVisit('auth', 'login', 'login', "User {$user->name} logged in");
 
         return response()->json([
-            'success'     => true,
-            'token'       => $token,
-            'token_type'  => 'Bearer',
-            'user'        => $this->formatUser($user),
+            'success'    => true,
+            'token'      => $token,
+            'token_type' => 'Bearer',
+            'user'       => $this->formatUser($user),
         ]);
     }
 
@@ -60,10 +67,8 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         self::logVisit('auth', 'logout', 'logout', "User {$request->user()->name} logged out");
-
         $request->user()->update(['is_online' => false]);
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['success' => true, 'message' => 'Logged out successfully.']);
     }
 
@@ -71,18 +76,13 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('roles.permissions');
-
-        return response()->json([
-            'success' => true,
-            'user'    => $this->formatUser($user),
-        ]);
+        return response()->json(['success' => true, 'user' => $this->formatUser($user)]);
     }
 
     // ── PUT /api/auth/profile ─────────────────────────────────
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-
         $validated = $request->validate([
             'name'          => 'sometimes|string|max:255',
             'phone'         => 'sometimes|nullable|string|max:20',
@@ -95,7 +95,6 @@ class AuthController extends Controller
 
         $old = $user->only(array_keys($validated));
         $user->update($validated);
-
         self::logVisit('auth', 'profile', 'updated', "Profile updated", $old, $validated, User::class, $user->id);
 
         return response()->json([
@@ -114,18 +113,12 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Current password is incorrect.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
 
         $user->update(['password' => $request->password]);
-
         self::logVisit('auth', 'profile', 'password-changed', "Password changed");
-
         return response()->json(['success' => true, 'message' => 'Password changed successfully.']);
     }
 
@@ -133,22 +126,12 @@ class AuthController extends Controller
     public function uploadAvatar(Request $request)
     {
         $request->validate(['avatar' => 'required|image|mimes:jpg,jpeg,png|max:2048']);
-
         $user = $request->user();
-
-        if ($user->avatar) {
-            \Storage::disk('public')->delete($user->avatar);
-        }
-
+        if ($user->avatar) Storage::disk('public')->delete($user->avatar);
         $path = $request->file('avatar')->store('avatars', 'public');
         $user->update(['avatar' => $path]);
-
         self::logVisit('auth', 'profile', 'avatar-updated', "Avatar updated");
-
-        return response()->json([
-            'success'    => true,
-            'avatar_url' => $user->avatar_url,
-        ]);
+        return response()->json(['success' => true, 'avatar_url' => $user->avatar_url]);
     }
 
     // ── Helper ────────────────────────────────────────────────
