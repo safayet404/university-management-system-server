@@ -17,6 +17,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\AdmissionController;
+use App\Http\Controllers\LibraryController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -149,17 +150,34 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('admissions')->group(function () {
-        Route::get('/stats',             [AdmissionController::class, 'stats']);
-        Route::get('/',                  [AdmissionController::class, 'index']);
-        Route::post('/',                 [AdmissionController::class, 'store']);
-        Route::get('/{id}',              [AdmissionController::class, 'show']);
-        Route::put('/{id}',              [AdmissionController::class, 'update']);
-        Route::delete('/{id}',           [AdmissionController::class, 'destroy']);
-        Route::patch('/{id}/review',     [AdmissionController::class, 'review']);
-        Route::patch('/{id}/shortlist',  [AdmissionController::class, 'shortlist']);
-        Route::patch('/{id}/accept',     [AdmissionController::class, 'accept']);
-        Route::patch('/{id}/reject',     [AdmissionController::class, 'reject']);
-        Route::post('/{id}/enroll',      [AdmissionController::class, 'enroll']);
+        Route::get('/stats',            [AdmissionController::class, 'stats']);
+        Route::get('/',                 [AdmissionController::class, 'index']);
+        Route::post('/',                [AdmissionController::class, 'store']);
+        Route::get('/{id}',             [AdmissionController::class, 'show']);
+        Route::put('/{id}',             [AdmissionController::class, 'update']);
+        Route::delete('/{id}',          [AdmissionController::class, 'destroy']);
+        Route::patch('/{id}/review',    [AdmissionController::class, 'review']);
+        Route::patch('/{id}/shortlist', [AdmissionController::class, 'shortlist']);
+        Route::patch('/{id}/accept',    [AdmissionController::class, 'accept']);
+        Route::patch('/{id}/reject',    [AdmissionController::class, 'reject']);
+        Route::post('/{id}/enroll',     [AdmissionController::class, 'enroll']);
+    });
+
+    Route::prefix('library')->group(function () {
+        Route::get('/stats',              [LibraryController::class, 'stats']);
+        // Books
+        Route::get('/books',              [LibraryController::class, 'books']);
+        Route::post('/books',             [LibraryController::class, 'storeBook']);
+        Route::put('/books/{id}',         [LibraryController::class, 'updateBook']);
+        Route::delete('/books/{id}',      [LibraryController::class, 'destroyBook']);
+        // Members
+        Route::get('/members/search',     [LibraryController::class, 'searchMembers']);
+        Route::get('/members',            [LibraryController::class, 'members']);
+        Route::post('/members',           [LibraryController::class, 'storeMember']);
+        // Issues
+        Route::get('/issues',             [LibraryController::class, 'issues']);
+        Route::post('/issues',            [LibraryController::class, 'issueBook']);
+        Route::patch('/issues/{id}/return', [LibraryController::class, 'returnBook']);
     });
 
     Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
