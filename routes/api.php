@@ -20,6 +20,7 @@ use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingsController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -222,4 +223,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admissions', [ReportController::class, 'admissions']);
         Route::get('/pdf/{type}', [ReportController::class, 'exportPdf']);
     });
+
+    Route::prefix('settings')->group(function () {
+        Route::get('/',          [SettingsController::class, 'index']);
+        Route::get('/{group}',   [SettingsController::class, 'group']);
+        Route::put('/{group}',   [SettingsController::class, 'update']);
+    });
+    Route::get('/public-settings', [SettingsController::class, 'publicSettings']);
 });
