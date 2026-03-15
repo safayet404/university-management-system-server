@@ -12,6 +12,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\AttendanceController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -27,7 +28,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/avatar',         [AuthController::class, 'uploadAvatar']);
     });
 
-    // Users
     Route::prefix('users')->group(function () {
         Route::get('/stats',                [UserController::class, 'stats']);
         Route::get('/export',               [UserController::class, 'export']);
@@ -45,7 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}/activity',        [UserController::class, 'activity']);
     });
 
-    // Departments
     Route::prefix('departments')->group(function () {
         Route::get('/',        [DepartmentController::class, 'index']);
         Route::post('/',       [DepartmentController::class, 'store']);
@@ -54,7 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [DepartmentController::class, 'destroy']);
     });
 
-    // Programs
     Route::prefix('programs')->group(function () {
         Route::get('/',        [ProgramController::class, 'index']);
         Route::post('/',       [ProgramController::class, 'store']);
@@ -62,7 +60,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [ProgramController::class, 'destroy']);
     });
 
-    // Students
     Route::prefix('students')->group(function () {
         Route::get('/stats',         [StudentController::class, 'stats']);
         Route::get('/export',        [StudentController::class, 'export']);
@@ -74,7 +71,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/status', [StudentController::class, 'updateStatus']);
     });
 
-    // Faculty
     Route::prefix('faculty')->group(function () {
         Route::get('/stats',         [FacultyController::class, 'stats']);
         Route::get('/export',        [FacultyController::class, 'export']);
@@ -86,7 +82,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/status', [FacultyController::class, 'updateStatus']);
     });
 
-    // Courses
     Route::prefix('courses')->group(function () {
         Route::get('/stats',   [CourseController::class, 'stats']);
         Route::get('/',        [CourseController::class, 'index']);
@@ -96,18 +91,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [CourseController::class, 'destroy']);
     });
 
-    // Enrollments
     Route::prefix('enrollments')->group(function () {
-        Route::get('/stats',               [EnrollmentController::class, 'stats']);
-        Route::post('/bulk-approve',       [EnrollmentController::class, 'bulkApprove']);
-        Route::get('/',                    [EnrollmentController::class, 'index']);
-        Route::post('/',                   [EnrollmentController::class, 'store']);
-        Route::patch('/{id}/approve',      [EnrollmentController::class, 'approve']);
-        Route::patch('/{id}/reject',       [EnrollmentController::class, 'reject']);
-        Route::patch('/{id}/drop',         [EnrollmentController::class, 'drop']);
+        Route::get('/stats',         [EnrollmentController::class, 'stats']);
+        Route::post('/bulk-approve', [EnrollmentController::class, 'bulkApprove']);
+        Route::get('/',              [EnrollmentController::class, 'index']);
+        Route::post('/',             [EnrollmentController::class, 'store']);
+        Route::patch('/{id}/approve', [EnrollmentController::class, 'approve']);
+        Route::patch('/{id}/reject', [EnrollmentController::class, 'reject']);
+        Route::patch('/{id}/drop',   [EnrollmentController::class, 'drop']);
     });
 
-    // Roles
+    Route::prefix('attendance')->group(function () {
+        Route::get('/stats',    [AttendanceController::class, 'stats']);
+        Route::get('/sessions', [AttendanceController::class, 'sessions']);
+        Route::get('/students', [AttendanceController::class, 'getStudentsForCourse']);
+        Route::post('/mark',    [AttendanceController::class, 'mark']);
+        Route::get('/report',   [AttendanceController::class, 'report']);
+        Route::get('/calendar', [AttendanceController::class, 'calendar']);
+    });
+
     Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
         Route::get('/',                   [RoleController::class, 'index']);
         Route::post('/',                  [RoleController::class, 'store']);
@@ -119,7 +121,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}/history',       [RoleController::class, 'history']);
     });
 
-    // Permissions
     Route::middleware('role:super-admin|admin')->prefix('permissions')->group(function () {
         Route::get('/',        [PermissionController::class, 'index']);
         Route::post('/',       [PermissionController::class, 'store']);
@@ -128,7 +129,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bulk',   [PermissionController::class, 'bulkCreate']);
     });
 
-    // Activity Logs
     Route::middleware('role:super-admin|admin')->prefix('activity-logs')->group(function () {
         Route::get('/',          [ActivityLogController::class, 'index']);
         Route::get('/stats',     [ActivityLogController::class, 'stats']);
