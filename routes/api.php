@@ -9,16 +9,14 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\FacultyController;
 
-// ── Public ────────────────────────────────────────────────────
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// ── Authenticated ─────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Auth
     Route::prefix('auth')->group(function () {
         Route::post('/logout',         [AuthController::class, 'logout']);
         Route::get('/me',              [AuthController::class, 'me']);
@@ -64,14 +62,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Students
     Route::prefix('students')->group(function () {
-        Route::get('/stats',          [StudentController::class, 'stats']);
-        Route::get('/export',         [StudentController::class, 'export']);
-        Route::get('/',               [StudentController::class, 'index']);
-        Route::post('/',              [StudentController::class, 'store']);
-        Route::get('/{id}',           [StudentController::class, 'show']);
-        Route::put('/{id}',           [StudentController::class, 'update']);
-        Route::delete('/{id}',        [StudentController::class, 'destroy']);
-        Route::patch('/{id}/status',  [StudentController::class, 'updateStatus']);
+        Route::get('/stats',         [StudentController::class, 'stats']);
+        Route::get('/export',        [StudentController::class, 'export']);
+        Route::get('/',              [StudentController::class, 'index']);
+        Route::post('/',             [StudentController::class, 'store']);
+        Route::get('/{id}',          [StudentController::class, 'show']);
+        Route::put('/{id}',          [StudentController::class, 'update']);
+        Route::delete('/{id}',       [StudentController::class, 'destroy']);
+        Route::patch('/{id}/status', [StudentController::class, 'updateStatus']);
+    });
+
+    // Faculty
+    Route::prefix('faculty')->group(function () {
+        Route::get('/stats',         [FacultyController::class, 'stats']);
+        Route::get('/export',        [FacultyController::class, 'export']);
+        Route::get('/',              [FacultyController::class, 'index']);
+        Route::post('/',             [FacultyController::class, 'store']);
+        Route::get('/{id}',          [FacultyController::class, 'show']);
+        Route::put('/{id}',          [FacultyController::class, 'update']);
+        Route::delete('/{id}',       [FacultyController::class, 'destroy']);
+        Route::patch('/{id}/status', [FacultyController::class, 'updateStatus']);
     });
 
     // Roles
