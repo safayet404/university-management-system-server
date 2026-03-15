@@ -15,6 +15,7 @@ use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\FeeController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -113,23 +114,42 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('exams')->group(function () {
-        Route::get('/stats',            [ExamController::class, 'stats']);
-        Route::get('/',                 [ExamController::class, 'index']);
-        Route::post('/',                [ExamController::class, 'store']);
-        Route::put('/{id}',             [ExamController::class, 'update']);
-        Route::delete('/{id}',          [ExamController::class, 'destroy']);
-        Route::get('/{id}/students',    [ExamController::class, 'students']);
-        Route::post('/{id}/results',    [ExamController::class, 'saveResults']);
-        Route::patch('/{id}/publish',   [ExamController::class, 'publishResults']);
+        Route::get('/stats',          [ExamController::class, 'stats']);
+        Route::get('/',               [ExamController::class, 'index']);
+        Route::post('/',              [ExamController::class, 'store']);
+        Route::put('/{id}',           [ExamController::class, 'update']);
+        Route::delete('/{id}',        [ExamController::class, 'destroy']);
+        Route::get('/{id}/students',  [ExamController::class, 'students']);
+        Route::post('/{id}/results',  [ExamController::class, 'saveResults']);
+        Route::patch('/{id}/publish', [ExamController::class, 'publishResults']);
     });
 
     Route::prefix('grades')->group(function () {
-        Route::get('/stats',           [GradeController::class, 'stats']);
-        Route::get('/course',          [GradeController::class, 'forCourse']);
-        Route::post('/save',           [GradeController::class, 'save']);
-        Route::post('/publish',        [GradeController::class, 'publish']);
-        Route::get('/student/{id}',    [GradeController::class, 'studentGrades']);
-        Route::get('/',                [GradeController::class, 'index']);
+        Route::get('/stats',        [GradeController::class, 'stats']);
+        Route::get('/course',       [GradeController::class, 'forCourse']);
+        Route::post('/save',        [GradeController::class, 'save']);
+        Route::post('/publish',     [GradeController::class, 'publish']);
+        Route::get('/student/{id}', [GradeController::class, 'studentGrades']);
+        Route::get('/',             [GradeController::class, 'index']);
+    });
+
+    // Fees
+    Route::prefix('fees')->group(function () {
+        Route::get('/stats',                        [FeeController::class, 'stats']);
+        Route::get('/defaulters',                   [FeeController::class, 'defaulters']);
+        Route::get('/student/{id}',                 [FeeController::class, 'studentInvoices']);
+
+        // Fee structures
+        Route::get('/structures',                   [FeeController::class, 'structures']);
+        Route::post('/structures',                  [FeeController::class, 'storeStructure']);
+        Route::put('/structures/{id}',              [FeeController::class, 'updateStructure']);
+        Route::delete('/structures/{id}',           [FeeController::class, 'destroyStructure']);
+
+        // Invoices
+        Route::get('/invoices',                     [FeeController::class, 'invoices']);
+        Route::post('/invoices',                    [FeeController::class, 'storeInvoice']);
+        Route::post('/invoices/bulk-generate',      [FeeController::class, 'bulkGenerate']);
+        Route::post('/invoices/{id}/pay',           [FeeController::class, 'collectPayment']);
     });
 
     Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
