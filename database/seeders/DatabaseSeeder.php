@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             LibrarySeeder::class,           // 15. library
             TimetableSeeder::class,         // 16. timetable (needs courses/faculty)
             NotificationSeeder::class,      // 17. notifications (needs users)
+            SettingsSeeder::class
         ]);
     }
 }
