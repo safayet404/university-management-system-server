@@ -19,6 +19,7 @@ use App\Http\Controllers\FeeController;
 use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -210,5 +211,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats',     [ActivityLogController::class, 'stats']);
         Route::get('/modules',   [ActivityLogController::class, 'modules']);
         Route::get('/user/{id}', [ActivityLogController::class, 'userLogs']);
+    });
+
+    Route::prefix('reports')->group(function () {
+        Route::get('/overview',  [ReportController::class, 'overview']);
+        Route::get('/students',  [ReportController::class, 'students']);
+        Route::get('/fees',      [ReportController::class, 'fees']);
+        Route::get('/attendance', [ReportController::class, 'attendance']);
+        Route::get('/exams',     [ReportController::class, 'exams']);
+        Route::get('/admissions', [ReportController::class, 'admissions']);
+        Route::get('/pdf/{type}', [ReportController::class, 'exportPdf']);
     });
 });
