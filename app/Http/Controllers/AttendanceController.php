@@ -10,6 +10,8 @@ use App\Models\StudentProfile;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceController extends Controller
 {
@@ -65,6 +67,8 @@ class AttendanceController extends Controller
             'semester'     => 'required|string',
             'academic_year'=> 'required|string',
         ]);
+
+        Gate::authorize('teach-course', Course::findOrFail($request->course_id));
 
         // Get enrolled + approved students
         $enrollments = Enrollment::with('student.user')
@@ -124,6 +128,15 @@ class AttendanceController extends Controller
             'records.*.status' => 'required|in:present,absent,late,excused',
             'records.*.remarks'=> 'nullable|string',
         ]);
+
+        $course = Course::findOrFail($request->course_id);
+        Gate::authorize('teach-course', $course);
+
+        $notEnrolled = collect($request->records)->pluck('student_profile_id')
+            ->diff($course->enrolledStudentIds($request->semester, $request->academic_year));
+        if ($notEnrolled->isNotEmpty()) {
+            throw ValidationException::withMessages(['records' => 'Some students are not enrolled in this course for this term.']);
+        }
 
         DB::transaction(function () use ($request, &$session) {
             // Create or update session
@@ -185,6 +198,8 @@ class AttendanceController extends Controller
             'semester'      => 'required|string',
             'academic_year' => 'required|string',
         ]);
+
+        Gate::authorize('teach-course', Course::findOrFail($request->course_id));
 
         self::logVisit('attendance', 'report', 'visited', "Viewed attendance report for course #{$request->course_id}");
 

@@ -31,6 +31,11 @@ class CourseController extends Controller
         if ($request->filled('status'))         $query->where('status', $request->status);
         if ($request->filled('semester_level')) $query->where('semester_level', $request->semester_level);
 
+        // Courses the user may grade/take attendance for (see the teach-course gate)
+        if ($request->boolean('teachable') && ! $request->user()->can('courses.edit')) {
+            $query->where('faculty_profile_id', $request->user()->facultyProfile?->id ?? 0);
+        }
+
         if ($request->boolean('all')) {
             return response()->json(['success' => true, 'data' => $query->get()->map(fn($c) => $this->formatCourse($c))]);
         }

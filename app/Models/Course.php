@@ -35,6 +35,16 @@ class Course extends Model
         return $this->belongsTo(Program::class);
     }
 
+    /** Student profile ids actively enrolled in this course for a term. */
+    public function enrolledStudentIds(string $semester, string $academicYear): \Illuminate\Support\Collection
+    {
+        return $this->enrollments()
+            ->where('semester', $semester)
+            ->where('academic_year', $academicYear)
+            ->whereIn('status', ['approved', 'completed'])
+            ->pluck('student_profile_id');
+    }
+
     public function faculty()
     {
         return $this->belongsTo(FacultyProfile::class, 'faculty_profile_id');

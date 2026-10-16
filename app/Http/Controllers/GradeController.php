@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\CourseGrade;
 use App\Models\Enrollment;
 use App\Models\ExamResult;
@@ -9,6 +10,8 @@ use App\Models\StudentProfile;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class GradeController extends Controller
 {
@@ -44,6 +47,8 @@ class GradeController extends Controller
             'semester'      => 'required|string',
             'academic_year' => 'required|string',
         ]);
+
+        Gate::authorize('teach-course', Course::findOrFail($request->course_id));
 
         self::logVisit('grades', 'course', 'visited', "Viewed grades for course #{$request->course_id}");
 
@@ -90,6 +95,20 @@ class GradeController extends Controller
             'grades.*.remarks'            => 'nullable|string',
         ]);
 
+        Gate::authorize('teach-course', Course::findOrFail($request->course_id));
+
+        // Every enrollment must belong to this course and term, and to the given student
+        $enrollments = Enrollment::whereIn('id', collect($request->grades)->pluck('enrollment_id'))
+            ->where('course_id', $request->course_id)
+            ->where('semester', $request->semester)
+            ->where('academic_year', $request->academic_year)
+            ->pluck('student_profile_id', 'id');
+        foreach ($request->grades as $i => $gradeData) {
+            if (($enrollments[$gradeData['enrollment_id']] ?? null) != $gradeData['student_profile_id']) {
+                throw ValidationException::withMessages(["grades.$i.enrollment_id" => 'Enrollment does not belong to this course and student.']);
+            }
+        }
+
         DB::transaction(function () use ($request) {
             foreach ($request->grades as $gradeData) {
                 $marks  = $gradeData['total_marks'] ?? null;
@@ -128,6 +147,8 @@ class GradeController extends Controller
             'semester'      => 'required|string',
             'academic_year' => 'required|string',
         ]);
+
+        Gate::authorize('teach-course', Course::findOrFail($request->course_id));
 
         $count = CourseGrade::where('course_id', $request->course_id)
             ->where('semester', $request->semester)

@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
@@ -54,6 +57,8 @@ class ExamController extends Controller
             'instructions'  => 'nullable|string',
         ]);
 
+        Gate::authorize('teach-course', Course::findOrFail($validated['course_id']));
+
         $exam = Exam::create(array_merge($validated, ['created_by' => auth()->id(), 'status' => 'scheduled']));
         self::logVisit('exams', 'create', 'created', "Created exam: {$exam->title}", [], $validated, Exam::class, $exam->id);
 
@@ -77,6 +82,8 @@ class ExamController extends Controller
             'status'        => 'nullable|in:scheduled,ongoing,completed,cancelled',
         ]);
 
+        Gate::authorize('teach-course', $exam->course);
+
         $exam->update($validated);
         self::logVisit('exams', 'edit', 'updated', "Updated exam: {$exam->title}", [], $validated, Exam::class, $exam->id);
 
@@ -95,6 +102,7 @@ class ExamController extends Controller
     public function students($id)
     {
         $exam = Exam::with('course')->findOrFail($id);
+        Gate::authorize('teach-course', $exam->course);
 
         $enrollments = Enrollment::with('student.user')
             ->where('course_id', $exam->course_id)
@@ -132,6 +140,14 @@ class ExamController extends Controller
             'results.*.remarks'               => 'nullable|string',
         ]);
 
+        Gate::authorize('teach-course', $exam->course);
+
+        $notEnrolled = collect($request->results)->pluck('student_profile_id')
+            ->diff($exam->course->enrolledStudentIds($exam->semester, $exam->academic_year));
+        if ($notEnrolled->isNotEmpty()) {
+            throw ValidationException::withMessages(['results' => 'Some students are not enrolled in this exam\'s course.']);
+        }
+
         DB::transaction(function () use ($request, $exam, $id) {
             foreach ($request->results as $result) {
                 $isAbsent = $result['is_absent'] ?? false;
@@ -163,6 +179,7 @@ class ExamController extends Controller
     public function publishResults($id)
     {
         $exam = Exam::findOrFail($id);
+        Gate::authorize('teach-course', $exam->course);
         $exam->update(['results_published' => true, 'results_published_at' => now()]);
         self::logVisit('exams', 'publish', 'published', "Published results for: {$exam->title}", [], [], Exam::class, $exam->id);
         return response()->json(['success' => true, 'message' => 'Results published.']);
