@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -76,6 +77,31 @@ class User extends Authenticatable
     public function libraryMember()
     {
         return $this->hasOne(LibraryMember::class);
+    }
+
+    // ── Privilege checks ──────────────────────────────────────
+    // Nobody but a super-admin may hand out power they do not hold themselves.
+
+    /** Whether this user may grant or revoke the given permissions. */
+    public function canGrant(iterable $permissions): bool
+    {
+        if ($this->hasRole('super-admin')) {
+            return true;
+        }
+
+        return collect($permissions)->diff($this->getAllPermissions()->pluck('name'))->isEmpty();
+    }
+
+    /** Whether this user may give someone the given role. */
+    public function canAssignRole(string $roleName): bool
+    {
+        return $this->canGrant(Role::findByName($roleName, 'web')->permissions->pluck('name'));
+    }
+
+    /** Whether this user may change another account (no more powerful than their own). */
+    public function canManage(User $other): bool
+    {
+        return $this->canGrant($other->getAllPermissions()->pluck('name'));
     }
 
     // public function staffProfile()

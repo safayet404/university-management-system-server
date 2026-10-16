@@ -66,6 +66,8 @@ class PermissionController extends Controller
         $perm = Permission::findOrFail($id);
         $request->validate(['name' => 'required|string|unique:permissions,name,' . $id . '|max:100']);
 
+        abort_unless(auth()->user()->canGrant([$perm->name]), 403, 'You cannot rename a permission you do not have.');
+
         $old = $perm->name;
         $perm->update(['name' => $request->name]);
 
@@ -78,6 +80,7 @@ class PermissionController extends Controller
     public function destroy($id)
     {
         $perm = Permission::findOrFail($id);
+        abort_unless(auth()->user()->canGrant([$perm->name]), 403, 'You cannot delete a permission you do not have.');
 
         self::logVisit('permissions', 'delete', 'deleted', "Permission '{$perm->name}' deleted", ['name' => $perm->name], [], Permission::class, $perm->id);
 

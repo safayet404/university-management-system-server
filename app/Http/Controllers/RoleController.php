@@ -52,6 +52,11 @@ class RoleController extends Controller
 
         $request->validate(['name' => 'required|string|unique:roles,name,' . $id . '|max:100']);
 
+        if (in_array($role->name, ['super-admin', 'admin'])) {
+            return response()->json(['success' => false, 'message' => 'Cannot rename system roles.'], 422);
+        }
+        abort_unless(auth()->user()->canGrant($role->permissions->pluck('name')), 403, 'You cannot modify a role with permissions you do not have.');
+
         $old = ['name' => $role->name];
         $role->update(['name' => strtolower($request->name)]);
 
@@ -68,6 +73,8 @@ class RoleController extends Controller
         if (in_array($role->name, ['super-admin', 'admin'])) {
             return response()->json(['success' => false, 'message' => 'Cannot delete system roles.'], 422);
         }
+
+        abort_unless(auth()->user()->canGrant($role->permissions->pluck('name')), 403, 'You cannot modify a role with permissions you do not have.');
 
         if ($role->users()->count() > 0) {
             return response()->json(['success' => false, 'message' => 'Cannot delete role with assigned users.'], 422);
@@ -126,6 +133,9 @@ class RoleController extends Controller
             ->keys()
             ->toArray();
 
+        // Both the role's current permissions and the new set must be within the caller's own
+        abort_unless(auth()->user()->canGrant($old) && auth()->user()->canGrant($granted), 403, 'You cannot grant or revoke permissions you do not have.');
+
         $role->syncPermissions($granted);
 
         $new      = $role->fresh()->permissions->pluck('name')->toArray();
@@ -154,6 +164,7 @@ class RoleController extends Controller
         $request->validate(['name' => 'required|string|unique:roles,name|max:100']);
 
         $original = Role::with('permissions')->findOrFail($id);
+        abort_unless(auth()->user()->canGrant($original->permissions->pluck('name')), 403, 'You cannot copy a role with permissions you do not have.');
         $clone    = Role::create(['name' => strtolower($request->name), 'guard_name' => 'web']);
         $clone->syncPermissions($original->permissions->pluck('name')->toArray());
 

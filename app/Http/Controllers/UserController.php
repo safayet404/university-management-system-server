@@ -94,6 +94,8 @@ class UserController extends Controller
             'status'        => 'nullable|in:active,inactive,suspended',
         ]);
 
+        abort_unless(auth()->user()->canAssignRole($validated['role']), 403, 'You cannot assign a role with permissions you do not have.');
+
         $user = User::create([
             ...$validated,
             'password' => Hash::make($validated['password']),
@@ -115,6 +117,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
 
         $validated = $request->validate([
             'name'          => 'sometimes|string|max:255',
@@ -136,6 +139,7 @@ class UserController extends Controller
         // Update role if provided
         if ($request->filled('role')) {
             $request->validate(['role' => 'string|exists:roles,name']);
+            abort_unless(auth()->user()->canAssignRole($request->role), 403, 'You cannot assign a role with permissions you do not have.');
             $user->syncRoles([$request->role]);
         }
 
@@ -152,6 +156,7 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
 
         if ($user->id === auth()->id()) {
             return response()->json(['success' => false, 'message' => 'Cannot delete your own account.'], 422);
@@ -172,6 +177,7 @@ class UserController extends Controller
     public function restore($id)
     {
         $user = User::withTrashed()->findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
         $user->restore();
 
         self::logVisit('users', 'restore', 'restored', "Restored user: {$user->name}", [], [], User::class, $user->id);
@@ -185,6 +191,7 @@ class UserController extends Controller
         $request->validate(['status' => 'required|in:active,inactive,suspended']);
 
         $user    = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
         $old     = $user->status;
         $user->update(['status' => $request->status]);
 
@@ -208,7 +215,9 @@ class UserController extends Controller
         $request->validate(['role' => 'required|string|exists:roles,name']);
 
         $user    = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
         $oldRole = $user->getRoleNames()->first();
+        abort_unless(auth()->user()->canAssignRole($request->role), 403, 'You cannot assign a role with permissions you do not have.');
         $user->syncRoles([$request->role]);
 
         self::logVisit('users', 'role', 'role-changed', "User {$user->name} role changed from {$oldRole} to {$request->role}", ['role' => $oldRole], ['role' => $request->role], User::class, $user->id);
@@ -226,6 +235,7 @@ class UserController extends Controller
         $request->validate(['avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048']);
 
         $user = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
 
         if ($user->avatar) {
             Storage::disk('public')->delete($user->avatar);
@@ -248,6 +258,7 @@ class UserController extends Controller
         $request->validate(['password' => 'required|string|min:8|confirmed']);
 
         $user = User::findOrFail($id);
+        abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
         $user->update(['password' => Hash::make($request->password)]);
         $user->tokens()->delete(); // Force re-login
 
@@ -268,6 +279,8 @@ class UserController extends Controller
         $users  = User::whereIn('id', $request->user_ids)
             ->where('id', '!=', auth()->id())
             ->get();
+
+        abort_unless($users->every(fn($u) => auth()->user()->canManage($u)), 403, 'You cannot modify a more privileged account.');
 
         $count = 0;
         foreach ($users as $user) {
