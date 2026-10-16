@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class BookIssue extends Model
@@ -25,12 +26,10 @@ class BookIssue extends Model
     public function issuedBy()   { return $this->belongsTo(User::class, 'issued_by'); }
     public function returnedTo() { return $this->belongsTo(User::class, 'returned_to'); }
 
-    public function calculateFine(int $finePerDay = 5): array
+    public function calculateFine(int $finePerDay = 5, ?CarbonInterface $returnDate = null): array
     {
-        $dueDate    = $this->due_date;
-        $returnDate = $this->return_date ?? now()->toDateObject();
-        $days       = max(0, $dueDate->diffInDays($returnDate, false) * -1);
-        $overdue    = $returnDate > $dueDate ? (int)$dueDate->diffInDays($returnDate) : 0;
+        $returnDate = ($returnDate ?? $this->return_date ?? today())->copy()->startOfDay();
+        $overdue    = $returnDate->gt($this->due_date) ? (int) $this->due_date->diffInDays($returnDate) : 0;
         return ['days' => $overdue, 'amount' => $overdue * $finePerDay];
     }
 }

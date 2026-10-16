@@ -16,6 +16,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\FeeController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\NotificationController;
@@ -164,6 +165,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/accept',    [AdmissionController::class, 'accept'])->middleware('permission:admissions.approve');
         Route::patch('/{id}/reject',    [AdmissionController::class, 'reject'])->middleware('permission:admissions.reject');
         Route::post('/{id}/enroll',     [AdmissionController::class, 'enroll'])->middleware('permission:admissions.approve');
+    });
+
+    Route::prefix('library')->group(function () {
+        Route::get('/stats',                [LibraryController::class, 'stats'])->middleware('permission:library.read');
+        // Books
+        Route::get('/books',                [LibraryController::class, 'books'])->middleware('permission:library.read');
+        Route::post('/books',               [LibraryController::class, 'storeBook'])->middleware('permission:library.create');
+        Route::put('/books/{id}',           [LibraryController::class, 'updateBook'])->middleware('permission:library.edit');
+        Route::delete('/books/{id}',        [LibraryController::class, 'destroyBook'])->middleware('permission:library.delete');
+        // Members
+        Route::get('/members/search',       [LibraryController::class, 'searchMembers'])->middleware('permission:library.issue');
+        Route::get('/members',              [LibraryController::class, 'members'])->middleware('permission:library.issue');
+        Route::post('/members',             [LibraryController::class, 'storeMember'])->middleware('permission:library.create');
+        Route::get('/users/search',         [LibraryController::class, 'searchUsers'])->middleware('permission:library.create');
+        // Issues
+        Route::get('/issues',               [LibraryController::class, 'issues'])->middleware('permission:library.issue');
+        Route::post('/issues',              [LibraryController::class, 'issueBook'])->middleware('permission:library.issue');
+        Route::patch('/issues/{id}/return', [LibraryController::class, 'returnBook'])->middleware('permission:library.return');
     });
 
     Route::prefix('timetable')->group(function () {

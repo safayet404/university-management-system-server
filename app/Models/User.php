@@ -73,6 +73,11 @@ class User extends Authenticatable
         return $this->hasOne(FacultyProfile::class);
     }
 
+    public function libraryMember()
+    {
+        return $this->hasOne(LibraryMember::class);
+    }
+
     // public function staffProfile()
     // {
     //     return $this->hasOne(StaffProfile::class);

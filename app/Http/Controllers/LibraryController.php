@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BookIssue;
+use Carbon\Carbon;
 use App\Models\LibraryBook;
 use App\Models\LibraryMember;
 use App\Models\User;
@@ -173,6 +174,17 @@ class LibraryController extends Controller
         return response()->json(['success' => true, 'data' => $members->map(fn($m) => $this->formatMember($m))]);
     }
 
+    // Users who can be added as library members (only name and email are exposed)
+    public function searchUsers(Request $request)
+    {
+        $s = $request->get('q', '');
+        $users = User::whereDoesntHave('libraryMember')
+            ->where(fn($q) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
+            ->limit(8)->get(['id', 'name', 'email']);
+
+        return response()->json(['success' => true, 'data' => $users]);
+    }
+
     // ── ISSUES ────────────────────────────────────────────────
 
     public function issues(Request $request)
@@ -203,16 +215,18 @@ class LibraryController extends Controller
             'due_date'          => 'nullable|date|after:today',
         ]);
 
-        $book   = LibraryBook::findOrFail($request->library_book_id);
-        $member = LibraryMember::findOrFail($request->library_member_id);
+        $result = DB::transaction(function () use ($request) {
+            // Lock the book and member so concurrent issues cannot overdraw copies or the member's limit
+            $book   = LibraryBook::lockForUpdate()->findOrFail($request->library_book_id);
+            $member = LibraryMember::lockForUpdate()->findOrFail($request->library_member_id);
 
-        if ($book->available_copies < 1) return response()->json(['success' => false, 'message' => 'No copies available.'], 422);
-        if ($member->status !== 'active') return response()->json(['success' => false, 'message' => 'Member account is not active.'], 422);
+            if ($book->available_copies < 1) return 'No copies available.';
+            if ($member->status !== 'active') return 'Member account is not active.';
 
-        $currentlyIssued = BookIssue::where('library_member_id', $member->id)->where('status', 'issued')->count();
-        if ($currentlyIssued >= $member->max_books) return response()->json(['success' => false, 'message' => "Member has reached maximum book limit ({$member->max_books})."], 422);
+            // Overdue books are still on loan
+            $currentlyIssued = BookIssue::where('library_member_id', $member->id)->whereIn('status', ['issued', 'overdue'])->count();
+            if ($currentlyIssued >= $member->max_books) return "Member has reached maximum book limit ({$member->max_books}).";
 
-        DB::transaction(function () use ($request, $book, $member, &$issue) {
             $issue = BookIssue::create([
                 'library_book_id'   => $book->id,
                 'library_member_id' => $member->id,
@@ -222,7 +236,14 @@ class LibraryController extends Controller
                 'status'            => 'issued',
             ]);
             $book->decrement('available_copies');
+
+            return [$issue, $book, $member];
         });
+
+        if (is_string($result)) {
+            return response()->json(['success' => false, 'message' => $result], 422);
+        }
+        [$issue, $book, $member] = $result;
 
         self::logVisit('library', 'issue', 'created', "Issued: {$book->title} to {$member->member_id}", [], [], BookIssue::class, $issue->id);
 
@@ -231,14 +252,14 @@ class LibraryController extends Controller
 
     public function returnBook(Request $request, $issueId)
     {
-        $issue = BookIssue::with(['book', 'member'])->findOrFail($issueId);
-
-        if ($issue->status === 'returned') return response()->json(['success' => false, 'message' => 'Already returned.'], 422);
-
         $returnDate = $request->return_date ?? today()->format('Y-m-d');
-        $fine       = $issue->calculateFine(self::FINE_PER_DAY_BDT);
 
-        DB::transaction(function () use ($issue, $returnDate, $fine, $request) {
+        $result = DB::transaction(function () use ($issueId, $returnDate, $request) {
+            // Lock the issue so a double-submitted return cannot add the copy back twice
+            $issue = BookIssue::with(['book', 'member'])->lockForUpdate()->findOrFail($issueId);
+            if ($issue->status === 'returned') return null;
+
+            $fine = $issue->calculateFine(self::FINE_PER_DAY_BDT, Carbon::parse($returnDate));
             $issue->update([
                 'return_date' => $returnDate,
                 'returned_to' => auth()->id(),
@@ -249,7 +270,14 @@ class LibraryController extends Controller
                 'remarks'     => $request->remarks,
             ]);
             $issue->book->increment('available_copies');
+
+            return [$issue, $fine];
         });
+
+        if ($result === null) {
+            return response()->json(['success' => false, 'message' => 'Already returned.'], 422);
+        }
+        [$issue, $fine] = $result;
 
         self::logVisit('library', 'return', 'updated', "Returned: {$issue->book->title}", [], [], BookIssue::class, $issue->id);
 
