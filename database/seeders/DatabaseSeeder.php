@@ -8,6 +8,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction() && config('app.seed_password') === 'password') {
+            throw new \RuntimeException('Refusing to seed production with the default password. Set SEED_USER_PASSWORD.');
+        }
+
         $this->call([
             RolesPermissionsSeeder::class,  // 1. roles first
             AdminSeeder::class,             // 2. admin users

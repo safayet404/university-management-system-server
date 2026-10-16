@@ -14,7 +14,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Super Admin',
                 'email'       => 'superadmin@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000000',
                 'status'      => 'active',
                 'employee_id' => 'SA-001',
@@ -23,7 +23,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Admin User',
                 'email'       => 'admin@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000001',
                 'status'      => 'active',
                 'employee_id' => 'AD-001',
@@ -32,7 +32,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Dr. John Faculty',
                 'email'       => 'faculty@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000002',
                 'status'      => 'active',
                 'employee_id' => 'FAC-001',
@@ -42,7 +42,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Sarah Student',
                 'email'       => 'student@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000003',
                 'status'      => 'active',
                 'student_id'  => 'STU-2024-001',
@@ -52,7 +52,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Mark Staff',
                 'email'       => 'staff@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000004',
                 'status'      => 'active',
                 'employee_id' => 'STF-001',
@@ -61,7 +61,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Lisa Librarian',
                 'email'       => 'librarian@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000005',
                 'status'      => 'active',
                 'employee_id' => 'LIB-001',
@@ -70,7 +70,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Tom Accountant',
                 'email'       => 'accountant@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000006',
                 'status'      => 'active',
                 'employee_id' => 'ACC-001',
@@ -79,7 +79,7 @@ class AdminSeeder extends Seeder
             [
                 'name'        => 'Amy Admission',
                 'email'       => 'admission@unicore.edu',
-                'password'    => Hash::make('password'),
+                'password'    => Hash::make(config('app.seed_password')),
                 'phone'       => '+8801700000007',
                 'status'      => 'active',
                 'employee_id' => 'ADM-001',
@@ -99,7 +99,7 @@ class AdminSeeder extends Seeder
             $user->syncRoles([$role]);
         }
 
-        $this->command->info('✅ Test accounts created (all passwords: password)');
+        $this->command->info('✅ Test accounts created (password set by SEED_USER_PASSWORD)');
         $this->command->table(
             ['Role', 'Email'],
             collect($users)->map(fn($u) => [$u['role'] ?? '', $u['email']])->toArray()

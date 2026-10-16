@@ -137,6 +137,11 @@ DB_SSLMODE=require
 # CORS - set to your frontend URL
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 
+# Seeding - password for all seeded accounts (must not be "password" in production)
+SEED_USER_PASSWORD=password
+# Docker only - seed an empty database on container start
+SEED_DATABASE=false
+
 # Sanctum
 SANCTUM_STATEFUL_DOMAINS=localhost:3000
 ```
@@ -234,16 +239,20 @@ docker-compose up --build
 
 ## Default Credentials
 
-| Email | Password | Role |
-|-------|----------|------|
-| superadmin@unicore.edu | password | Super Admin |
-| admin@unicore.edu | password | Admin |
-| faculty@unicore.edu | password | Faculty |
-| student@unicore.edu | password | Student |
-| staff@unicore.edu | password | Staff |
-| accountant@unicore.edu | password | Accountant |
-| librarian@unicore.edu | password | Librarian |
-| admission@unicore.edu | password | Admission Officer |
+The seeders create one demo account per role:
+
+| Email | Role |
+|-------|------|
+| superadmin@unicore.edu | Super Admin |
+| admin@unicore.edu | Admin |
+| faculty@unicore.edu | Faculty |
+| student@unicore.edu | Student |
+| staff@unicore.edu | Staff |
+| accountant@unicore.edu | Accountant |
+| librarian@unicore.edu | Librarian |
+| admission@unicore.edu | Admission Officer |
+
+All of them get the password from `SEED_USER_PASSWORD`. Locally it defaults to `password`; in production the seeder refuses to run until you set a strong one. The Docker image only seeds when `SEED_DATABASE=true`.
 
 ---
 

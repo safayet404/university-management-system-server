@@ -58,7 +58,7 @@ class UserSeeder extends Seeder
                 $user = User::create([
                     'name'          => $name,
                     'email'         => $email,
-                    'password'      => Hash::make('password'),
+                    'password'      => Hash::make(config('app.seed_password')),
                     'phone'         => '+880170' . str_pad($counter, 7, '0', STR_PAD_LEFT),
                     'gender'        => $gender,
                     'date_of_birth' => $faker->dateTimeBetween('-45 years', '-18 years')->format('Y-m-d'),

@@ -52,13 +52,17 @@ php artisan view:cache
 echo "→ Running migrations..."
 php artisan migrate --force
 
-# Seed if empty
-USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 || echo "0")
-if [ "$USER_COUNT" = "0" ]; then
-    echo "→ Seeding database..."
-    php artisan db:seed --force
+# Seed only when explicitly requested (SEED_DATABASE=true) and the database is empty
+if [ "$SEED_DATABASE" = "true" ]; then
+    USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 || echo "0")
+    if [ "$USER_COUNT" = "0" ]; then
+        echo "→ Seeding database..."
+        php artisan db:seed --force
+    else
+        echo "→ Database already seeded (${USER_COUNT} users), skipping."
+    fi
 else
-    echo "→ Database already seeded (${USER_COUNT} users), skipping."
+    echo "→ SEED_DATABASE not set, skipping seeding."
 fi
 
 # Storage link

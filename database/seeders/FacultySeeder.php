@@ -68,7 +68,7 @@ class FacultySeeder extends Seeder
                 $user = User::create([
                     'name'          => $name,
                     'email'         => $email,
-                    'password'      => Hash::make('password'),
+                    'password'      => Hash::make(config('app.seed_password')),
                     'phone'         => '+880170' . str_pad($empCounter, 7, '0', STR_PAD_LEFT),
                     'gender'        => $gender,
                     'date_of_birth' => $faker->dateTimeBetween('-55 years', '-28 years')->format('Y-m-d'),

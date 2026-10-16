@@ -118,6 +118,19 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seed User Password
+    |--------------------------------------------------------------------------
+    |
+    | Password given to every account created by the database seeders. The
+    | default is for local development only; DatabaseSeeder refuses to run
+    | in production while it is still the default.
+    |
+    */
+
+    'seed_password' => env('SEED_USER_PASSWORD', 'password'),
+
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
