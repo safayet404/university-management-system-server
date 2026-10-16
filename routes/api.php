@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Middleware\ReadOnlyDemo;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ActivityLogController;
@@ -24,10 +25,15 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/demo-roles', [AuthController::class, 'demoRoles']);
+
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('/login',      [AuthController::class, 'login']);
+        Route::post('/demo-login', [AuthController::class, 'demoLogin']);
+    });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', ReadOnlyDemo::class])->group(function () {
 
     Route::prefix('auth')->group(function () {
         Route::post('/logout',         [AuthController::class, 'logout']);

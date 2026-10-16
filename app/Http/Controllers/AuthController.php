@@ -7,6 +7,8 @@ use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -63,6 +65,34 @@ class AuthController extends Controller
         ]);
     }
 
+    // ── GET /api/auth/demo-roles ──────────────────────────────
+    public function demoRoles()
+    {
+        return response()->json(['success' => true, 'data' => config('app.demo_roles')]);
+    }
+
+    // ── POST /api/auth/demo-login ─────────────────────────────
+    // Password-less, read-only session for visitors trying the demo
+    public function demoLogin(Request $request)
+    {
+        $request->validate(['role' => ['required', 'string', Rule::in(array_diff(config('app.demo_roles'), ['super-admin']))]]);
+
+        $user = User::role($request->role)->where('status', 'active')->orderBy('id')
+            ->with('roles.permissions')->first();
+        abort_unless($user, 404, 'No demo account for this role.');
+
+        $token = $user->createToken('demo', ['demo'])->plainTextToken;
+
+        self::logVisit('auth', 'login', 'login', "Demo login as {$user->name}");
+
+        return response()->json([
+            'success'    => true,
+            'token'      => $token,
+            'token_type' => 'Bearer',
+            'user'       => $this->formatUser($user) + ['is_demo' => true],
+        ]);
+    }
+
     // ── POST /api/auth/logout ─────────────────────────────────
     public function logout(Request $request)
     {
@@ -75,8 +105,10 @@ class AuthController extends Controller
     // ── GET /api/auth/me ──────────────────────────────────────
     public function me(Request $request)
     {
-        $user = $request->user()->load('roles.permissions');
-        return response()->json(['success' => true, 'user' => $this->formatUser($user)]);
+        $user   = $request->user()->load('roles.permissions');
+        $token  = $request->user()->currentAccessToken();
+        $isDemo = $token instanceof PersonalAccessToken && in_array('demo', $token->abilities ?? [], true);
+        return response()->json(['success' => true, 'user' => $this->formatUser($user) + ['is_demo' => $isDemo]]);
     }
 
     // ── PUT /api/auth/profile ─────────────────────────────────

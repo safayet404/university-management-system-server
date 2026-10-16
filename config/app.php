@@ -131,6 +131,22 @@ return [
 
     'seed_password' => env('SEED_USER_PASSWORD', 'password'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo Roles
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated roles that visitors can try without a password through
+    | /api/auth/demo-login. Demo sessions are read-only. Leave empty to turn
+    | the demo off. super-admin is never offered.
+    |
+    */
+
+    'demo_roles' => array_values(array_diff(
+        array_filter(array_map('trim', explode(',', (string) env('DEMO_ROLES', '')))),
+        ['super-admin'],
+    )),
+
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

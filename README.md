@@ -141,6 +141,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 SEED_USER_PASSWORD=password
 # Docker only - seed an empty database on container start
 SEED_DATABASE=false
+# One-click read-only demo roles on the login page (empty = off)
+DEMO_ROLES=admin,faculty,student
 
 # Sanctum
 SANCTUM_STATEFUL_DOMAINS=localhost:3000
@@ -253,6 +255,10 @@ The seeders create one demo account per role:
 | admission@unicore.edu | Admission Officer |
 
 All of them get the password from `SEED_USER_PASSWORD`. Locally it defaults to `password`; in production the seeder refuses to run until you set a strong one. The Docker image only seeds when `SEED_DATABASE=true`.
+
+### Read-only demo
+
+Set `DEMO_ROLES` (e.g. `admin,faculty,student,accountant,librarian,admission-officer`) to show one-click demo buttons on the login page. A demo session signs in as the first seeded account of that role without a password and is **read-only**: every non-GET request returns 403, so visitors can explore everything but cannot change data. `super-admin` is never offered, and an empty `DEMO_ROLES` turns the demo off.
 
 ---
 
