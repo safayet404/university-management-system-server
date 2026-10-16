@@ -6,7 +6,9 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\StudentProfile;
 use App\Traits\LogsPageVisit;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EnrollmentController extends Controller
 {
@@ -78,14 +80,19 @@ class EnrollmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Course has reached maximum capacity.'], 422);
         }
 
-        $enrollment = Enrollment::create([
-            'student_profile_id' => $request->student_profile_id,
-            'course_id'          => $request->course_id,
-            'semester'           => $request->semester,
-            'academic_year'      => $request->academic_year,
-            'section'            => $request->section,
-            'status'             => 'pending',
-        ]);
+        try {
+            $enrollment = Enrollment::create([
+                'student_profile_id' => $request->student_profile_id,
+                'course_id'          => $request->course_id,
+                'semester'           => $request->semester,
+                'academic_year'      => $request->academic_year,
+                'section'            => $request->section,
+                'status'             => 'pending',
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request enrolled the same student between the check above and this insert
+            return response()->json(['success' => false, 'message' => 'Student already enrolled in this course for this semester.'], 422);
+        }
 
         $enrollment->load(['student.user', 'course']);
         self::logVisit('enrollments', 'create', 'created', "Enrolled in {$course->name}", [], [], Enrollment::class, $enrollment->id);
@@ -98,15 +105,29 @@ class EnrollmentController extends Controller
     {
         $enrollment = Enrollment::with(['student.user', 'course'])->findOrFail($id);
 
-        if ($enrollment->status !== 'pending') {
-            return response()->json(['success' => false, 'message' => 'Only pending enrollments can be approved.'], 422);
-        }
+        $error = DB::transaction(function () use ($enrollment) {
+            // Lock the course so concurrent approvals cannot overfill it
+            $course = Course::lockForUpdate()->findOrFail($enrollment->course_id);
 
-        $enrollment->update([
-            'status'      => 'approved',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+            if ($enrollment->fresh()->status !== 'pending') {
+                return 'Only pending enrollments can be approved.';
+            }
+            if ($this->seatsLeft($course) < 1) {
+                return 'Course has reached maximum capacity.';
+            }
+
+            $enrollment->update([
+                'status'      => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+
+            return null;
+        });
+
+        if ($error) {
+            return response()->json(['success' => false, 'message' => $error], 422);
+        }
 
         self::logVisit('enrollments', 'approve', 'approved', "Approved enrollment: {$enrollment->student->user->name} in {$enrollment->course->name}", ['status' => 'pending'], ['status' => 'approved'], Enrollment::class, $enrollment->id);
 
@@ -142,13 +163,42 @@ class EnrollmentController extends Controller
     {
         $request->validate(['enrollment_ids' => 'required|array', 'enrollment_ids.*' => 'integer|exists:enrollments,id']);
 
-        $count = Enrollment::whereIn('id', $request->enrollment_ids)
-            ->where('status', 'pending')
-            ->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+        [$count, $skipped] = DB::transaction(function () use ($request) {
+            $pending = Enrollment::whereIn('id', $request->enrollment_ids)
+                ->where('status', 'pending')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('course_id');
+
+            // Lock courses in a fixed order to avoid deadlocks between concurrent bulk approvals
+            $courses = Course::whereIn('id', $pending->keys())->orderBy('id')->lockForUpdate()->get();
+
+            $count = 0;
+            $skipped = 0;
+            foreach ($courses as $course) {
+                $enrollments = $pending[$course->id];
+                $toApprove   = $enrollments->take(max(0, $this->seatsLeft($course)));
+
+                Enrollment::whereIn('id', $toApprove->pluck('id'))
+                    ->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+
+                $count   += $toApprove->count();
+                $skipped += $enrollments->count() - $toApprove->count();
+            }
+
+            return [$count, $skipped];
+        });
 
         self::logVisit('enrollments', 'bulk-approve', 'approved', "Bulk approved {$count} enrollments");
 
-        return response()->json(['success' => true, 'message' => "{$count} enrollments approved."]);
+        $message = "{$count} enrollments approved." . ($skipped ? " {$skipped} skipped because the course is full." : '');
+
+        return response()->json(['success' => true, 'message' => $message, 'approved' => $count, 'skipped' => $skipped]);
+    }
+
+    private function seatsLeft(Course $course): int
+    {
+        return $course->max_students - $course->enrollments()->where('status', 'approved')->count();
     }
 
     // ── GET /api/enrollments/stats ────────────────────────────
