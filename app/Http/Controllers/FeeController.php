@@ -10,6 +10,7 @@ use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class FeeController extends Controller
 {
@@ -170,7 +171,6 @@ class FeeController extends Controller
 
     public function collectPayment(Request $request, $invoiceId)
     {
-        $invoice = FeeInvoice::with('student')->findOrFail($invoiceId);
         $request->validate([
             'amount'         => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:cash,bank_transfer,online,cheque,bkash,nagad',
@@ -178,23 +178,36 @@ class FeeController extends Controller
             'remarks'        => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request, $invoice) {
-            // Create payment record
+        $invoice = DB::transaction(function () use ($request, $invoiceId) {
+            // Lock the invoice row so concurrent payments are applied one at a time
+            $invoice = FeeInvoice::lockForUpdate()->findOrFail($invoiceId);
+
+            if (in_array($invoice->status, ['paid', 'waived'])) {
+                throw ValidationException::withMessages(['amount' => "Invoice is already {$invoice->status}."]);
+            }
+
+            // Compare and add in whole cents to avoid float rounding
+            $amountCents = (int) round($request->amount * 100);
+            $dueCents    = (int) round($invoice->due_amount * 100);
+            if ($amountCents > $dueCents) {
+                throw ValidationException::withMessages(['amount' => 'Amount exceeds the due amount of ' . number_format($dueCents / 100, 2) . '.']);
+            }
+
             FeePayment::create([
                 'fee_invoice_id'     => $invoice->id,
                 'student_profile_id' => $invoice->student_profile_id,
                 'collected_by'       => auth()->id(),
                 'transaction_id'     => 'TXN-' . strtoupper(Str::random(10)),
-                'amount'             => $request->amount,
+                'amount'             => $amountCents / 100,
                 'payment_method'     => $request->payment_method,
                 'payment_date'       => $request->payment_date,
                 'remarks'            => $request->remarks,
             ]);
 
-            // Update invoice paid amount
-            $invoice->paid_amount = (float)$invoice->paid_amount + (float)$request->amount;
-            $invoice->save();
+            $invoice->paid_amount = ((int) round($invoice->paid_amount * 100) + $amountCents) / 100;
             $invoice->updateStatus();
+
+            return $invoice;
         });
 
         self::logVisit('fees', 'payment', 'created', "Payment of {$request->amount} collected for invoice {$invoice->invoice_number}", [], ['amount' => $request->amount, 'method' => $request->payment_method], FeeInvoice::class, $invoice->id);

@@ -89,7 +89,7 @@ class AuthorizationTest extends TestCase
         $this->postJson('/api/fees/invoices/1/pay')->assertForbidden();
 
         Sanctum::actingAs($this->userWithRole('accountant'));
-        $this->postJson('/api/fees/invoices/1/pay')->assertNotFound();
+        $this->postJson('/api/fees/invoices/1/pay')->assertUnprocessable();
     }
 
     public function test_student_cannot_list_everyones_invoices_or_enrollments(): void
