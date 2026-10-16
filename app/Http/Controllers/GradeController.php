@@ -168,6 +168,10 @@ class GradeController extends Controller
     // GET /api/grades/student/{id} — all grades for a student
     public function studentGrades($id)
     {
+        // Students (grades.own) may only view their own grades
+        $user = auth()->user();
+        abort_unless($user->can('grades.read') || (int) $user->studentProfile?->id === (int) $id, 403, 'You can only view your own grades.');
+
         $student = StudentProfile::with('user')->findOrFail($id);
         $grades  = CourseGrade::with('course.department')
             ->where('student_profile_id', $id)

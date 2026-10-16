@@ -64,11 +64,12 @@ class RolesPermissionsSeeder extends Seeder
 
             // Fees
             'fees.read', 'fees.create', 'fees.edit', 'fees.delete',
-            'fees.export', 'fees.collect',
+            'fees.export', 'fees.collect', 'fees.own',
 
             // Admissions
             'admissions.read', 'admissions.create', 'admissions.edit',
             'admissions.approve', 'admissions.reject', 'admissions.export',
+            'admissions.delete',
 
             // Library
             'library.read', 'library.create', 'library.edit', 'library.delete',
@@ -131,10 +132,9 @@ class RolesPermissionsSeeder extends Seeder
             'timetable.read',
             'attendance.own',
             'grades.own',
-            'fees.read',
+            'fees.own',
             'library.read',
             'notifications.read',
-            'enrollments.read',
         ]);
 
         // Staff

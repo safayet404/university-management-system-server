@@ -37,150 +37,150 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('users')->group(function () {
-        Route::get('/stats',                [UserController::class, 'stats']);
-        Route::get('/export',               [UserController::class, 'export']);
-        Route::post('/bulk-action',         [UserController::class, 'bulkAction']);
-        Route::get('/',                     [UserController::class, 'index']);
-        Route::post('/',                    [UserController::class, 'store']);
-        Route::get('/{id}',                 [UserController::class, 'show']);
-        Route::put('/{id}',                 [UserController::class, 'update']);
-        Route::delete('/{id}',              [UserController::class, 'destroy']);
-        Route::post('/{id}/restore',        [UserController::class, 'restore']);
-        Route::patch('/{id}/status',        [UserController::class, 'updateStatus']);
-        Route::patch('/{id}/role',          [UserController::class, 'updateRole']);
-        Route::post('/{id}/avatar',         [UserController::class, 'uploadAvatar']);
-        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword']);
-        Route::get('/{id}/activity',        [UserController::class, 'activity']);
+        Route::get('/stats',                [UserController::class, 'stats'])->middleware('permission:users.read');
+        Route::get('/export',               [UserController::class, 'export'])->middleware('permission:users.export');
+        Route::post('/bulk-action',         [UserController::class, 'bulkAction'])->middleware('permission:users.edit|users.delete');
+        Route::get('/',                     [UserController::class, 'index'])->middleware('permission:users.read');
+        Route::post('/',                    [UserController::class, 'store'])->middleware('permission:users.create');
+        Route::get('/{id}',                 [UserController::class, 'show'])->middleware('permission:users.read');
+        Route::put('/{id}',                 [UserController::class, 'update'])->middleware('permission:users.edit');
+        Route::delete('/{id}',              [UserController::class, 'destroy'])->middleware('permission:users.delete');
+        Route::post('/{id}/restore',        [UserController::class, 'restore'])->middleware('permission:users.delete');
+        Route::patch('/{id}/status',        [UserController::class, 'updateStatus'])->middleware('permission:users.edit');
+        Route::patch('/{id}/role',          [UserController::class, 'updateRole'])->middleware('permission:users.edit');
+        Route::post('/{id}/avatar',         [UserController::class, 'uploadAvatar'])->middleware('permission:users.edit');
+        Route::post('/{id}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.edit');
+        Route::get('/{id}/activity',        [UserController::class, 'activity'])->middleware('permission:users.read');
     });
 
     Route::prefix('departments')->group(function () {
         Route::get('/',        [DepartmentController::class, 'index']);
-        Route::post('/',       [DepartmentController::class, 'store']);
+        Route::post('/',       [DepartmentController::class, 'store'])->middleware('permission:departments.create');
         Route::get('/{id}',    [DepartmentController::class, 'show']);
-        Route::put('/{id}',    [DepartmentController::class, 'update']);
-        Route::delete('/{id}', [DepartmentController::class, 'destroy']);
+        Route::put('/{id}',    [DepartmentController::class, 'update'])->middleware('permission:departments.edit');
+        Route::delete('/{id}', [DepartmentController::class, 'destroy'])->middleware('permission:departments.delete');
     });
 
     Route::prefix('programs')->group(function () {
         Route::get('/',        [ProgramController::class, 'index']);
-        Route::post('/',       [ProgramController::class, 'store']);
-        Route::put('/{id}',    [ProgramController::class, 'update']);
-        Route::delete('/{id}', [ProgramController::class, 'destroy']);
+        Route::post('/',       [ProgramController::class, 'store'])->middleware('permission:programs.create');
+        Route::put('/{id}',    [ProgramController::class, 'update'])->middleware('permission:programs.edit');
+        Route::delete('/{id}', [ProgramController::class, 'destroy'])->middleware('permission:programs.delete');
     });
 
     Route::prefix('students')->group(function () {
-        Route::get('/stats',         [StudentController::class, 'stats']);
-        Route::get('/export',        [StudentController::class, 'export']);
-        Route::get('/',              [StudentController::class, 'index']);
-        Route::post('/',             [StudentController::class, 'store']);
-        Route::get('/{id}',          [StudentController::class, 'show']);
-        Route::put('/{id}',          [StudentController::class, 'update']);
-        Route::delete('/{id}',       [StudentController::class, 'destroy']);
-        Route::patch('/{id}/status', [StudentController::class, 'updateStatus']);
+        Route::get('/stats',         [StudentController::class, 'stats'])->middleware('permission:students.read');
+        Route::get('/export',        [StudentController::class, 'export'])->middleware('permission:students.export');
+        Route::get('/',              [StudentController::class, 'index'])->middleware('permission:students.read');
+        Route::post('/',             [StudentController::class, 'store'])->middleware('permission:students.create');
+        Route::get('/{id}',          [StudentController::class, 'show'])->middleware('permission:students.read');
+        Route::put('/{id}',          [StudentController::class, 'update'])->middleware('permission:students.edit');
+        Route::delete('/{id}',       [StudentController::class, 'destroy'])->middleware('permission:students.delete');
+        Route::patch('/{id}/status', [StudentController::class, 'updateStatus'])->middleware('permission:students.edit');
     });
 
     Route::prefix('faculty')->group(function () {
-        Route::get('/stats',         [FacultyController::class, 'stats']);
-        Route::get('/export',        [FacultyController::class, 'export']);
-        Route::get('/',              [FacultyController::class, 'index']);
-        Route::post('/',             [FacultyController::class, 'store']);
-        Route::get('/{id}',          [FacultyController::class, 'show']);
-        Route::put('/{id}',          [FacultyController::class, 'update']);
-        Route::delete('/{id}',       [FacultyController::class, 'destroy']);
-        Route::patch('/{id}/status', [FacultyController::class, 'updateStatus']);
+        Route::get('/stats',         [FacultyController::class, 'stats'])->middleware('permission:faculty.read');
+        Route::get('/export',        [FacultyController::class, 'export'])->middleware('permission:faculty.export');
+        Route::get('/',              [FacultyController::class, 'index'])->middleware('permission:faculty.read');
+        Route::post('/',             [FacultyController::class, 'store'])->middleware('permission:faculty.create');
+        Route::get('/{id}',          [FacultyController::class, 'show'])->middleware('permission:faculty.read');
+        Route::put('/{id}',          [FacultyController::class, 'update'])->middleware('permission:faculty.edit');
+        Route::delete('/{id}',       [FacultyController::class, 'destroy'])->middleware('permission:faculty.delete');
+        Route::patch('/{id}/status', [FacultyController::class, 'updateStatus'])->middleware('permission:faculty.edit');
     });
 
     Route::prefix('courses')->group(function () {
-        Route::get('/stats',   [CourseController::class, 'stats']);
+        Route::get('/stats',   [CourseController::class, 'stats'])->middleware('permission:courses.read');
         Route::get('/',        [CourseController::class, 'index']);
-        Route::post('/',       [CourseController::class, 'store']);
+        Route::post('/',       [CourseController::class, 'store'])->middleware('permission:courses.create');
         Route::get('/{id}',    [CourseController::class, 'show']);
-        Route::put('/{id}',    [CourseController::class, 'update']);
-        Route::delete('/{id}', [CourseController::class, 'destroy']);
+        Route::put('/{id}',    [CourseController::class, 'update'])->middleware('permission:courses.edit');
+        Route::delete('/{id}', [CourseController::class, 'destroy'])->middleware('permission:courses.delete');
     });
 
     Route::prefix('enrollments')->group(function () {
-        Route::get('/stats',         [EnrollmentController::class, 'stats']);
-        Route::post('/bulk-approve', [EnrollmentController::class, 'bulkApprove']);
-        Route::get('/',              [EnrollmentController::class, 'index']);
-        Route::post('/',             [EnrollmentController::class, 'store']);
-        Route::patch('/{id}/approve', [EnrollmentController::class, 'approve']);
-        Route::patch('/{id}/reject', [EnrollmentController::class, 'reject']);
-        Route::patch('/{id}/drop',   [EnrollmentController::class, 'drop']);
+        Route::get('/stats',         [EnrollmentController::class, 'stats'])->middleware('permission:enrollments.read');
+        Route::post('/bulk-approve', [EnrollmentController::class, 'bulkApprove'])->middleware('permission:enrollments.approve');
+        Route::get('/',              [EnrollmentController::class, 'index'])->middleware('permission:enrollments.read');
+        Route::post('/',             [EnrollmentController::class, 'store'])->middleware('permission:enrollments.create');
+        Route::patch('/{id}/approve', [EnrollmentController::class, 'approve'])->middleware('permission:enrollments.approve');
+        Route::patch('/{id}/reject', [EnrollmentController::class, 'reject'])->middleware('permission:enrollments.reject');
+        Route::patch('/{id}/drop',   [EnrollmentController::class, 'drop'])->middleware('permission:enrollments.edit');
     });
 
     Route::prefix('attendance')->group(function () {
-        Route::get('/stats',    [AttendanceController::class, 'stats']);
-        Route::get('/sessions', [AttendanceController::class, 'sessions']);
-        Route::get('/students', [AttendanceController::class, 'getStudentsForCourse']);
-        Route::post('/mark',    [AttendanceController::class, 'mark']);
-        Route::get('/report',   [AttendanceController::class, 'report']);
-        Route::get('/calendar', [AttendanceController::class, 'calendar']);
+        Route::get('/stats',    [AttendanceController::class, 'stats'])->middleware('permission:attendance.read');
+        Route::get('/sessions', [AttendanceController::class, 'sessions'])->middleware('permission:attendance.read');
+        Route::get('/students', [AttendanceController::class, 'getStudentsForCourse'])->middleware('permission:attendance.read');
+        Route::post('/mark',    [AttendanceController::class, 'mark'])->middleware('permission:attendance.create|attendance.edit');
+        Route::get('/report',   [AttendanceController::class, 'report'])->middleware('permission:attendance.read');
+        Route::get('/calendar', [AttendanceController::class, 'calendar'])->middleware('permission:attendance.read');
     });
 
     Route::prefix('exams')->group(function () {
-        Route::get('/stats',          [ExamController::class, 'stats']);
-        Route::get('/',               [ExamController::class, 'index']);
-        Route::post('/',              [ExamController::class, 'store']);
-        Route::put('/{id}',           [ExamController::class, 'update']);
-        Route::delete('/{id}',        [ExamController::class, 'destroy']);
-        Route::get('/{id}/students',  [ExamController::class, 'students']);
-        Route::post('/{id}/results',  [ExamController::class, 'saveResults']);
-        Route::patch('/{id}/publish', [ExamController::class, 'publishResults']);
+        Route::get('/stats',          [ExamController::class, 'stats'])->middleware('permission:exams.read');
+        Route::get('/',               [ExamController::class, 'index'])->middleware('permission:exams.read');
+        Route::post('/',              [ExamController::class, 'store'])->middleware('permission:exams.create|exams.schedule');
+        Route::put('/{id}',           [ExamController::class, 'update'])->middleware('permission:exams.edit|exams.schedule');
+        Route::delete('/{id}',        [ExamController::class, 'destroy'])->middleware('permission:exams.delete');
+        Route::get('/{id}/students',  [ExamController::class, 'students'])->middleware('permission:exams.read');
+        Route::post('/{id}/results',  [ExamController::class, 'saveResults'])->middleware('permission:grades.create|grades.edit');
+        Route::patch('/{id}/publish', [ExamController::class, 'publishResults'])->middleware('permission:grades.publish');
     });
 
     Route::prefix('grades')->group(function () {
-        Route::get('/stats',        [GradeController::class, 'stats']);
-        Route::get('/course',       [GradeController::class, 'forCourse']);
-        Route::post('/save',        [GradeController::class, 'save']);
-        Route::post('/publish',     [GradeController::class, 'publish']);
-        Route::get('/student/{id}', [GradeController::class, 'studentGrades']);
-        Route::get('/',             [GradeController::class, 'index']);
+        Route::get('/stats',        [GradeController::class, 'stats'])->middleware('permission:grades.read');
+        Route::get('/course',       [GradeController::class, 'forCourse'])->middleware('permission:grades.read');
+        Route::post('/save',        [GradeController::class, 'save'])->middleware('permission:grades.create|grades.edit');
+        Route::post('/publish',     [GradeController::class, 'publish'])->middleware('permission:grades.publish');
+        Route::get('/student/{id}', [GradeController::class, 'studentGrades'])->middleware('permission:grades.read|grades.own');
+        Route::get('/',             [GradeController::class, 'index'])->middleware('permission:grades.read');
     });
 
     Route::prefix('fees')->group(function () {
-        Route::get('/stats',                   [FeeController::class, 'stats']);
-        Route::get('/defaulters',              [FeeController::class, 'defaulters']);
-        Route::get('/student/{id}',            [FeeController::class, 'studentInvoices']);
-        Route::get('/structures',              [FeeController::class, 'structures']);
-        Route::post('/structures',             [FeeController::class, 'storeStructure']);
-        Route::put('/structures/{id}',         [FeeController::class, 'updateStructure']);
-        Route::delete('/structures/{id}',      [FeeController::class, 'destroyStructure']);
-        Route::get('/invoices',                [FeeController::class, 'invoices']);
-        Route::post('/invoices',               [FeeController::class, 'storeInvoice']);
-        Route::post('/invoices/bulk-generate', [FeeController::class, 'bulkGenerate']);
-        Route::post('/invoices/{id}/pay',      [FeeController::class, 'collectPayment']);
+        Route::get('/stats',                   [FeeController::class, 'stats'])->middleware('permission:fees.read');
+        Route::get('/defaulters',              [FeeController::class, 'defaulters'])->middleware('permission:fees.read');
+        Route::get('/student/{id}',            [FeeController::class, 'studentInvoices'])->middleware('permission:fees.read|fees.own');
+        Route::get('/structures',              [FeeController::class, 'structures'])->middleware('permission:fees.read');
+        Route::post('/structures',             [FeeController::class, 'storeStructure'])->middleware('permission:fees.create');
+        Route::put('/structures/{id}',         [FeeController::class, 'updateStructure'])->middleware('permission:fees.edit');
+        Route::delete('/structures/{id}',      [FeeController::class, 'destroyStructure'])->middleware('permission:fees.delete');
+        Route::get('/invoices',                [FeeController::class, 'invoices'])->middleware('permission:fees.read');
+        Route::post('/invoices',               [FeeController::class, 'storeInvoice'])->middleware('permission:fees.create');
+        Route::post('/invoices/bulk-generate', [FeeController::class, 'bulkGenerate'])->middleware('permission:fees.create');
+        Route::post('/invoices/{id}/pay',      [FeeController::class, 'collectPayment'])->middleware('permission:fees.collect');
     });
 
     Route::prefix('admissions')->group(function () {
-        Route::get('/stats',            [AdmissionController::class, 'stats']);
-        Route::get('/',                 [AdmissionController::class, 'index']);
-        Route::post('/',                [AdmissionController::class, 'store']);
-        Route::get('/{id}',             [AdmissionController::class, 'show']);
-        Route::put('/{id}',             [AdmissionController::class, 'update']);
-        Route::delete('/{id}',          [AdmissionController::class, 'destroy']);
-        Route::patch('/{id}/review',    [AdmissionController::class, 'review']);
-        Route::patch('/{id}/shortlist', [AdmissionController::class, 'shortlist']);
-        Route::patch('/{id}/accept',    [AdmissionController::class, 'accept']);
-        Route::patch('/{id}/reject',    [AdmissionController::class, 'reject']);
-        Route::post('/{id}/enroll',     [AdmissionController::class, 'enroll']);
+        Route::get('/stats',            [AdmissionController::class, 'stats'])->middleware('permission:admissions.read');
+        Route::get('/',                 [AdmissionController::class, 'index'])->middleware('permission:admissions.read');
+        Route::post('/',                [AdmissionController::class, 'store'])->middleware('permission:admissions.create');
+        Route::get('/{id}',             [AdmissionController::class, 'show'])->middleware('permission:admissions.read');
+        Route::put('/{id}',             [AdmissionController::class, 'update'])->middleware('permission:admissions.edit');
+        Route::delete('/{id}',          [AdmissionController::class, 'destroy'])->middleware('permission:admissions.delete');
+        Route::patch('/{id}/review',    [AdmissionController::class, 'review'])->middleware('permission:admissions.edit');
+        Route::patch('/{id}/shortlist', [AdmissionController::class, 'shortlist'])->middleware('permission:admissions.edit');
+        Route::patch('/{id}/accept',    [AdmissionController::class, 'accept'])->middleware('permission:admissions.approve');
+        Route::patch('/{id}/reject',    [AdmissionController::class, 'reject'])->middleware('permission:admissions.reject');
+        Route::post('/{id}/enroll',     [AdmissionController::class, 'enroll'])->middleware('permission:admissions.approve');
     });
 
     Route::prefix('timetable')->group(function () {
-        Route::get('/stats',   [TimetableController::class, 'stats']);
-        Route::get('/rooms',   [TimetableController::class, 'rooms']);
-        Route::get('/list',    [TimetableController::class, 'list']);
-        Route::get('/',        [TimetableController::class, 'index']);
-        Route::post('/',       [TimetableController::class, 'store']);
-        Route::put('/{id}',    [TimetableController::class, 'update']);
-        Route::delete('/{id}', [TimetableController::class, 'destroy']);
+        Route::get('/stats',   [TimetableController::class, 'stats'])->middleware('permission:timetable.read');
+        Route::get('/rooms',   [TimetableController::class, 'rooms'])->middleware('permission:timetable.read');
+        Route::get('/list',    [TimetableController::class, 'list'])->middleware('permission:timetable.read');
+        Route::get('/',        [TimetableController::class, 'index'])->middleware('permission:timetable.read');
+        Route::post('/',       [TimetableController::class, 'store'])->middleware('permission:timetable.create');
+        Route::put('/{id}',    [TimetableController::class, 'update'])->middleware('permission:timetable.edit');
+        Route::delete('/{id}', [TimetableController::class, 'destroy'])->middleware('permission:timetable.delete');
     });
 
     Route::prefix('notifications')->group(function () {
         Route::get('/unread-count',    [NotificationController::class, 'unreadCount']);
         Route::get('/recent',          [NotificationController::class, 'recent']);
         Route::get('/stats',           [NotificationController::class, 'stats']);
-        Route::post('/send',           [NotificationController::class, 'send']);
+        Route::post('/send',           [NotificationController::class, 'send'])->middleware('permission:notifications.create');
         Route::patch('/mark-all-read', [NotificationController::class, 'markAllRead']);
         Route::delete('/clear-all',    [NotificationController::class, 'clearAll']);
         Route::get('/',                [NotificationController::class, 'index']);
@@ -188,46 +188,46 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}',         [NotificationController::class, 'destroy']);
     });
 
-    Route::middleware('role:super-admin|admin')->prefix('roles')->group(function () {
-        Route::get('/',                   [RoleController::class, 'index']);
-        Route::post('/',                  [RoleController::class, 'store']);
-        Route::put('/{id}',               [RoleController::class, 'update']);
-        Route::delete('/{id}',            [RoleController::class, 'destroy']);
-        Route::get('/{id}/permissions',   [RoleController::class, 'permissions']);
-        Route::patch('/{id}/permissions', [RoleController::class, 'syncPermissions']);
-        Route::post('/{id}/clone',        [RoleController::class, 'clone']);
-        Route::get('/{id}/history',       [RoleController::class, 'history']);
+    Route::prefix('roles')->group(function () {
+        Route::get('/',                   [RoleController::class, 'index'])->middleware('permission:roles.read');
+        Route::post('/',                  [RoleController::class, 'store'])->middleware('permission:roles.create');
+        Route::put('/{id}',               [RoleController::class, 'update'])->middleware('permission:roles.edit');
+        Route::delete('/{id}',            [RoleController::class, 'destroy'])->middleware('permission:roles.delete');
+        Route::get('/{id}/permissions',   [RoleController::class, 'permissions'])->middleware('permission:roles.read');
+        Route::patch('/{id}/permissions', [RoleController::class, 'syncPermissions'])->middleware('permission:roles.edit');
+        Route::post('/{id}/clone',        [RoleController::class, 'clone'])->middleware('permission:roles.create');
+        Route::get('/{id}/history',       [RoleController::class, 'history'])->middleware('permission:roles.read');
     });
 
-    Route::middleware('role:super-admin|admin')->prefix('permissions')->group(function () {
-        Route::get('/',        [PermissionController::class, 'index']);
-        Route::post('/',       [PermissionController::class, 'store']);
-        Route::put('/{id}',    [PermissionController::class, 'update']);
-        Route::delete('/{id}', [PermissionController::class, 'destroy']);
-        Route::post('/bulk',   [PermissionController::class, 'bulkCreate']);
+    Route::prefix('permissions')->group(function () {
+        Route::get('/',        [PermissionController::class, 'index'])->middleware('permission:permissions.read');
+        Route::post('/',       [PermissionController::class, 'store'])->middleware('permission:permissions.create');
+        Route::put('/{id}',    [PermissionController::class, 'update'])->middleware('permission:permissions.edit');
+        Route::delete('/{id}', [PermissionController::class, 'destroy'])->middleware('permission:permissions.delete');
+        Route::post('/bulk',   [PermissionController::class, 'bulkCreate'])->middleware('permission:permissions.create');
     });
 
-    Route::middleware('role:super-admin|admin')->prefix('activity-logs')->group(function () {
-        Route::get('/',          [ActivityLogController::class, 'index']);
-        Route::get('/stats',     [ActivityLogController::class, 'stats']);
-        Route::get('/modules',   [ActivityLogController::class, 'modules']);
-        Route::get('/user/{id}', [ActivityLogController::class, 'userLogs']);
+    Route::prefix('activity-logs')->group(function () {
+        Route::get('/',          [ActivityLogController::class, 'index'])->middleware('permission:activity-logs.read');
+        Route::get('/stats',     [ActivityLogController::class, 'stats'])->middleware('permission:activity-logs.read');
+        Route::get('/modules',   [ActivityLogController::class, 'modules'])->middleware('permission:activity-logs.read');
+        Route::get('/user/{id}', [ActivityLogController::class, 'userLogs'])->middleware('permission:activity-logs.read');
     });
 
     Route::prefix('reports')->group(function () {
-        Route::get('/overview',  [ReportController::class, 'overview']);
-        Route::get('/students',  [ReportController::class, 'students']);
-        Route::get('/fees',      [ReportController::class, 'fees']);
-        Route::get('/attendance', [ReportController::class, 'attendance']);
-        Route::get('/exams',     [ReportController::class, 'exams']);
-        Route::get('/admissions', [ReportController::class, 'admissions']);
-        Route::get('/pdf/{type}', [ReportController::class, 'exportPdf']);
+        Route::get('/overview',  [ReportController::class, 'overview'])->middleware('permission:reports.read');
+        Route::get('/students',  [ReportController::class, 'students'])->middleware('permission:reports.read');
+        Route::get('/fees',      [ReportController::class, 'fees'])->middleware('permission:reports.read');
+        Route::get('/attendance', [ReportController::class, 'attendance'])->middleware('permission:reports.read');
+        Route::get('/exams',     [ReportController::class, 'exams'])->middleware('permission:reports.read');
+        Route::get('/admissions', [ReportController::class, 'admissions'])->middleware('permission:reports.read');
+        Route::get('/pdf/{type}', [ReportController::class, 'exportPdf'])->middleware('permission:reports.export');
     });
 
     Route::prefix('settings')->group(function () {
-        Route::get('/',          [SettingsController::class, 'index']);
-        Route::get('/{group}',   [SettingsController::class, 'group']);
-        Route::put('/{group}',   [SettingsController::class, 'update']);
+        Route::get('/',          [SettingsController::class, 'index'])->middleware('permission:settings.read');
+        Route::get('/{group}',   [SettingsController::class, 'group'])->middleware('permission:settings.read');
+        Route::put('/{group}',   [SettingsController::class, 'update'])->middleware('permission:settings.edit');
     });
     Route::get('/public-settings', [SettingsController::class, 'publicSettings']);
 });

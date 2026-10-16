@@ -239,6 +239,10 @@ class FeeController extends Controller
 
     public function studentInvoices($studentId)
     {
+        // Students (fees.own) may only view their own invoices
+        $user = auth()->user();
+        abort_unless($user->can('fees.read') || (int) $user->studentProfile?->id === (int) $studentId, 403, 'You can only view your own invoices.');
+
         $invoices = FeeInvoice::with('payments')
             ->where('student_profile_id', $studentId)
             ->latest()->get();
