@@ -112,7 +112,7 @@ class User extends Authenticatable
     // ── Helpers ───────────────────────────────────────────────
     public function getAvatarUrlAttribute()
     {
-        if ($this->avatar) {
+        if ($this->avatar && config('app.avatar_uploads')) {
             return asset('storage/' . $this->avatar);
         }
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=4F46E5&color=fff&size=128';

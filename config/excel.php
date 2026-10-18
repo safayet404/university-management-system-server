@@ -326,7 +326,7 @@ return [
         | and the create file (file).
         |
         */
-        'local_path'          => storage_path('framework/cache/laravel-excel'),
+        'local_path'          => env('EXCEL_TEMP_PATH', storage_path('framework/cache/laravel-excel')),
 
         /*
         |--------------------------------------------------------------------------

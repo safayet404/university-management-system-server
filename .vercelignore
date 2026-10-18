@@ -1,0 +1,10 @@
+/vendor
+/node_modules
+/.github
+/docker
+/tests
+/storage/logs/*
+/database/database.sqlite
+.env
+.env.*
+!.env.example

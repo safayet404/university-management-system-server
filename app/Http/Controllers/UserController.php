@@ -232,6 +232,8 @@ class UserController extends Controller
     // ── POST /api/users/{id}/avatar ───────────────────────────
     public function uploadAvatar(Request $request, $id)
     {
+        abort_unless(config('app.avatar_uploads'), 503, 'Avatar uploads are disabled on this deployment.');
+
         $request->validate(['avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048']);
 
         $user = User::findOrFail($id);

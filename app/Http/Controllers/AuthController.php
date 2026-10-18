@@ -157,6 +157,8 @@ class AuthController extends Controller
     // ── POST /api/auth/avatar ─────────────────────────────────
     public function uploadAvatar(Request $request)
     {
+        abort_unless(config('app.avatar_uploads'), 503, 'Avatar uploads are disabled on this deployment.');
+
         $request->validate(['avatar' => 'required|image|mimes:jpg,jpeg,png|max:2048']);
         $user = $request->user();
         if ($user->avatar) Storage::disk('public')->delete($user->avatar);

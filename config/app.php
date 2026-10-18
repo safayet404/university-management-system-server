@@ -142,6 +142,13 @@ return [
     |
     */
 
+    /*
+    | Avatar uploads need a writable disk. Serverless hosts (Vercel) have none,
+    | so uploads can be switched off and users fall back to generated avatars.
+    */
+
+    'avatar_uploads' => (bool) env('AVATAR_UPLOADS', true),
+
     'demo_roles' => array_values(array_diff(
         array_filter(array_map('trim', explode(',', (string) env('DEMO_ROLES', '')))),
         ['super-admin'],
