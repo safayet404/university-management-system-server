@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo 'API only: no Node install needed'",
+  "buildCommand": "mkdir -p dist",
+  "outputDirectory": "dist",
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.7.4",
