@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'API only: no Node install needed'",
-  "buildCommand": "mkdir -p dist",
+  "buildCommand": "mkdir -p dist && printf 'User-agent: *\\nDisallow: /\\n' > dist/robots.txt",
   "outputDirectory": "dist",
   "functions": {
     "api/index.php": {
