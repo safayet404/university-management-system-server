@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Middleware\ReadOnlyDemo;
+use App\Http\Middleware\RequirePasswordChange;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ActivityLogController;
@@ -35,7 +36,7 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-Route::middleware(['auth:sanctum', ReadOnlyDemo::class])->group(function () {
+Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::class])->group(function () {
 
     Route::prefix('auth')->group(function () {
         Route::post('/logout',         [AuthController::class, 'logout']);

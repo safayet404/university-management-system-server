@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 
@@ -141,7 +143,8 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'password'         => 'required|string|min:8|confirmed',
+            'password'         => ['required', 'string', 'confirmed', 'different:current_password',
+                Password::min((int) Setting::get('min_password_length', 8))->letters()->numbers()],
         ]);
 
         $user = $request->user();
@@ -149,9 +152,13 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
 
-        $user->update(['password' => $request->password]);
+        $user->update(['password' => $request->password, 'must_change_password' => false]);
+
+        // Sign out every other device that still holds the old credentials
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()?->id)->delete();
+
         self::logVisit('auth', 'profile', 'password-changed', "Password changed");
-        return response()->json(['success' => true, 'message' => 'Password changed successfully.']);
+        return response()->json(['success' => true, 'message' => 'Password changed successfully.', 'user' => $this->formatUser($user->fresh())]);
     }
 
     // ── POST /api/auth/avatar ─────────────────────────────────
@@ -188,6 +195,7 @@ class AuthController extends Controller
             'last_login_at' => $user->last_login_at?->format('Y-m-d H:i:s'),
             'last_login_ip' => $user->last_login_ip,
             'is_online'     => $user->is_online,
+            'must_change_password' => (bool) $user->must_change_password,
             'roles'         => $user->getRoleNames(),
             'permissions'   => $user->getAllPermissions()->pluck('name'),
         ];

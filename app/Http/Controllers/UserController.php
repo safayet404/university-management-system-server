@@ -99,6 +99,8 @@ class UserController extends Controller
         $user = User::create([
             ...$validated,
             'password' => Hash::make($validated['password']),
+            // The admin chose this password, so the owner must replace it
+            'must_change_password' => true,
             'status'   => $validated['status'] ?? 'active',
         ]);
 
@@ -261,7 +263,7 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
         abort_unless(auth()->user()->canManage($user), 403, 'You cannot modify a more privileged account.');
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update(['password' => Hash::make($request->password), 'must_change_password' => true]);
         $user->tokens()->delete(); // Force re-login
 
         self::logVisit('users', 'password', 'password-reset', "Password reset for user: {$user->name}", [], [], User::class, $user->id);

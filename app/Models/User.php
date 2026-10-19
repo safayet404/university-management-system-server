@@ -21,6 +21,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
+        'must_change_password',
         'avatar',
         'status',
         'gender',
@@ -47,6 +48,7 @@ class User extends Authenticatable
         'date_of_birth'     => 'date',
         'is_online'         => 'boolean',
         'password'          => 'hashed',
+        'must_change_password' => 'boolean',
     ];
 
     // ── Activity log config ───────────────────────────────────
