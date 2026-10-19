@@ -31,8 +31,10 @@ Route::prefix('auth')->group(function () {
     Route::get('/demo-roles', [AuthController::class, 'demoRoles']);
 
     Route::middleware('throttle:10,1')->group(function () {
-        Route::post('/login',      [AuthController::class, 'login']);
-        Route::post('/demo-login', [AuthController::class, 'demoLogin']);
+        Route::post('/login',           [AuthController::class, 'login']);
+        Route::post('/demo-login',      [AuthController::class, 'demoLogin']);
+        Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
     });
 });
 

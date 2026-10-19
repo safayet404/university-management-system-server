@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use App\Support\PasswordPolicy;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 
@@ -95,6 +96,48 @@ class AuthController extends Controller
         ]);
     }
 
+    // ── POST /api/auth/forgot-password ────────────────────────
+    // Same answer whether or not the account exists, so the endpoint cannot be
+    // used to discover which emails are registered
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        PasswordBroker::sendResetLink($request->only('email'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'If an account exists for that email, a reset link is on its way.',
+        ]);
+    }
+
+    // ── POST /api/auth/reset-password ─────────────────────────
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'    => 'required|string',
+            'email'    => 'required|email',
+            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
+        ]);
+
+        $status = PasswordBroker::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill(['password' => $password, 'must_change_password' => false])->save();
+                $user->tokens()->delete(); // sign out every device
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== PasswordBroker::PASSWORD_RESET) {
+            return response()->json(['success' => false, 'message' => 'This reset link is invalid or has expired. Please request a new one.'], 422);
+        }
+
+        self::logVisit('auth', 'password', 'password-reset', 'Password reset via email link');
+
+        return response()->json(['success' => true, 'message' => 'Your password has been reset. You can now sign in.']);
+    }
+
     // ── POST /api/auth/logout ─────────────────────────────────
     public function logout(Request $request)
     {
@@ -143,8 +186,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'password'         => ['required', 'string', 'confirmed', 'different:current_password',
-                Password::min((int) Setting::get('min_password_length', 8))->letters()->numbers()],
+            'password'         => ['required', 'string', 'confirmed', 'different:current_password', PasswordPolicy::rule()],
         ]);
 
         $user = $request->user();

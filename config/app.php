@@ -149,6 +149,9 @@ return [
 
     'avatar_uploads' => (bool) env('AVATAR_UPLOADS', true),
 
+    // Where the Nuxt app lives; password reset emails link back to it
+    'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/'),
+
     'demo_roles' => array_values(array_diff(
         array_filter(array_map('trim', explode(',', (string) env('DEMO_ROLES', '')))),
         ['super-admin'],
