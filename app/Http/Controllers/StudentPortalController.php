@@ -61,7 +61,7 @@ class StudentPortalController extends Controller
     public function courses()
     {
         $student    = $this->student();
-        $courses    = $this->currentEnrollments($student, ['pending', 'approved']);
+        $courses    = $this->currentEnrollments($student, ['pending', 'approved', 'completed']);
         $attendance = $this->attendanceByCourse($student, $courses)->keyBy('course_id');
 
         return response()->json(['success' => true, 'term' => AcademicTerm::current(), 'data' => $courses->map(fn ($e) => [
@@ -171,7 +171,8 @@ class StudentPortalController extends Controller
         return $student;
     }
 
-    private function currentEnrollments(StudentProfile $student, array $statuses = ['approved']): Collection
+    // Publishing grades moves an enrollment to "completed"; it still belongs to this term
+    private function currentEnrollments(StudentProfile $student, array $statuses = ['approved', 'completed']): Collection
     {
         $term = AcademicTerm::current();
 

@@ -112,6 +112,7 @@ class DemoAccountsSeeder extends Seeder
         }
 
         $this->seedAttendance($student, $facultyUser, $current, $term);
+        $this->seedClassmates($student, $current->take(2), $department, $term);
         $this->seedTimetable($current, $faculty, $department, $term);
         $this->seedFees($student, $term);
 
@@ -156,6 +157,57 @@ class DemoAccountsSeeder extends Seeder
         }
     }
 
+    /**
+     * Fill the demo faculty's two classes with classmates, their attendance and,
+     * for the first class, unpublished marks — so the faculty portal shows a
+     * real roster and a course that is ready to publish.
+     */
+    private function seedClassmates(StudentProfile $demo, $courses, Department $department, array $term): void
+    {
+        // Same-department students first, then others taking it as an elective
+        $roster = StudentProfile::where('id', '!=', $demo->id)
+            ->orderByRaw('CASE WHEN department_id = ? THEN 0 ELSE 1 END', [$department->id])
+            ->orderBy('id')
+            ->take(12)
+            ->get()
+            ->prepend($demo);
+
+        $statuses = ['present', 'present', 'present', 'late', 'present', 'absent', 'present', 'present', 'excused', 'present'];
+
+        foreach ($courses as $c => $course) {
+            $sessions = AttendanceSession::where('course_id', $course->id)
+                ->where('semester', $term['semester'])
+                ->where('academic_year', $term['academic_year'])
+                ->orderBy('date')
+                ->get();
+
+            foreach ($roster as $n => $classmate) {
+                $enrollment = $classmate->is($demo)
+                    ? Enrollment::where(['student_profile_id' => $demo->id, 'course_id' => $course->id, 'semester' => $term['semester'], 'academic_year' => $term['academic_year']])->first()
+                    : $this->enroll($classmate, $course, $term['semester'], $term['academic_year'], 'approved');
+
+                if (! $classmate->is($demo)) {
+                    foreach ($sessions as $i => $session) {
+                        AttendanceRecord::updateOrCreate(
+                            ['attendance_session_id' => $session->id, 'student_profile_id' => $classmate->id],
+                            ['status' => $statuses[($n * 3 + $i + $c) % count($statuses)]]
+                        );
+                    }
+                }
+
+                if ($c === 0 && $enrollment) {
+                    $marks = 52 + (($n * 17 + 11) % 44);
+                    $grade = ExamResult::calculateGrade($marks, 100);
+                    CourseGrade::updateOrCreate(
+                        ['enrollment_id' => $enrollment->id, 'student_profile_id' => $classmate->id],
+                        ['course_id' => $course->id, 'semester' => $term['semester'], 'academic_year' => $term['academic_year'],
+                         'total_marks' => $marks, 'grade_point' => $grade['point'], 'grade_letter' => $grade['letter'], 'is_published' => false]
+                    );
+                }
+            }
+        }
+    }
+
     private function seedTimetable($courses, FacultyProfile $faculty, Department $department, array $term): void
     {
         $slots = [
@@ -172,7 +224,7 @@ class DemoAccountsSeeder extends Seeder
                 TimetableSlot::updateOrCreate(
                     ['course_id' => $course->id, 'day_of_week' => $day, 'semester' => $term['semester'], 'academic_year' => $term['academic_year'], 'section' => 'A'],
                     [
-                        'faculty_profile_id' => $course->faculty_profile_id ?? $faculty->id,
+                        'faculty_profile_id' => $course->faculty_profile_id,
                         'department_id'      => $course->department_id ?? $department->id,
                         'start_time'         => $start,
                         'end_time'           => $end,

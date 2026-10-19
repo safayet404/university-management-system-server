@@ -75,7 +75,7 @@ class AttendanceController extends Controller
             ->where('course_id', $request->course_id)
             ->where('semester', $request->semester)
             ->where('academic_year', $request->academic_year)
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'completed']) // completed = grades published, still on the roster
             ->get();
 
         // Check if session exists for this date
@@ -214,7 +214,7 @@ class AttendanceController extends Controller
             ->where('course_id', $request->course_id)
             ->where('semester', $request->semester)
             ->where('academic_year', $request->academic_year)
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'completed']) // completed = grades published, still on the roster
             ->get();
 
         $report = $enrollments->map(function ($e) use ($request, $totalSessions) {

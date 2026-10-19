@@ -16,6 +16,7 @@ use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\FacultyPortalController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\AdmissionController;
@@ -52,6 +53,13 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class])->group(function () {
         Route::get('/attendance', [StudentPortalController::class, 'attendance'])->middleware('permission:attendance.own');
         Route::get('/fees',       [StudentPortalController::class, 'fees'])->middleware('permission:fees.own');
         Route::get('/timetable',  [StudentPortalController::class, 'timetable'])->middleware('permission:timetable.read');
+    });
+
+    // Faculty self-service portal: the caller's own courses and schedule
+    Route::prefix('me/faculty')->group(function () {
+        Route::get('/overview',  [FacultyPortalController::class, 'overview'])->middleware('permission:attendance.read');
+        Route::get('/courses',   [FacultyPortalController::class, 'courses'])->middleware('permission:attendance.read');
+        Route::get('/timetable', [FacultyPortalController::class, 'timetable'])->middleware('permission:timetable.read');
     });
 
     Route::prefix('users')->group(function () {

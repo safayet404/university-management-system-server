@@ -7,6 +7,7 @@ use App\Models\CourseGrade;
 use App\Models\Enrollment;
 use App\Models\ExamResult;
 use App\Models\StudentProfile;
+use App\Support\GradeReport;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +57,7 @@ class GradeController extends Controller
             ->where('course_id', $request->course_id)
             ->where('semester', $request->semester)
             ->where('academic_year', $request->academic_year)
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'completed']) // completed = grades published, still on the roster
             ->get();
 
         $existingGrades = CourseGrade::where('course_id', $request->course_id)
@@ -171,13 +172,10 @@ class GradeController extends Controller
                 ]);
 
                 // Update student CGPA
+                // Credit-weighted, the same calculation the portals show
                 $student = StudentProfile::find($grade->student_profile_id);
                 if ($student) {
-                    $avg = CourseGrade::where('student_profile_id', $student->id)
-                        ->where('is_published', true)
-                        ->whereNotNull('grade_point')
-                        ->avg('grade_point');
-                    $student->update(['cgpa' => round($avg, 2)]);
+                    $student->update(['cgpa' => GradeReport::for($student)['cgpa'] ?? 0]);
                 }
             });
 
