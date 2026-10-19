@@ -23,6 +23,7 @@ use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\StudentPortalController;
 
 Route::prefix('auth')->group(function () {
     Route::get('/demo-roles', [AuthController::class, 'demoRoles']);
@@ -41,6 +42,16 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class])->group(function () {
         Route::put('/profile',         [AuthController::class, 'updateProfile']);
         Route::put('/change-password', [AuthController::class, 'changePassword']);
         Route::post('/avatar',         [AuthController::class, 'uploadAvatar']);
+    });
+
+    // Student self-service portal: always the caller's own data
+    Route::prefix('me/student')->group(function () {
+        Route::get('/overview',   [StudentPortalController::class, 'overview'])->middleware('permission:grades.own');
+        Route::get('/courses',    [StudentPortalController::class, 'courses'])->middleware('permission:grades.own');
+        Route::get('/grades',     [StudentPortalController::class, 'grades'])->middleware('permission:grades.own');
+        Route::get('/attendance', [StudentPortalController::class, 'attendance'])->middleware('permission:attendance.own');
+        Route::get('/fees',       [StudentPortalController::class, 'fees'])->middleware('permission:fees.own');
+        Route::get('/timetable',  [StudentPortalController::class, 'timetable'])->middleware('permission:timetable.read');
     });
 
     Route::prefix('users')->group(function () {

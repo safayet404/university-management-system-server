@@ -30,7 +30,8 @@ class DatabaseSeeder extends Seeder
             LibrarySeeder::class,           // 15. library
             TimetableSeeder::class,         // 16. timetable (needs courses/faculty)
             NotificationSeeder::class,      // 17. notifications (needs users)
-            SettingsSeeder::class
+            SettingsSeeder::class,
+            DemoAccountsSeeder::class,      // 18. full records for the demo student/faculty
         ]);
     }
 }
