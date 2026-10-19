@@ -61,34 +61,46 @@ class EnrollmentController extends Controller
             'section'            => 'nullable|string|max:5',
         ]);
 
-        // Check duplicate
-        $exists = Enrollment::where([
+        // One record per student, course and term (unique index). A dropped,
+        // rejected or deleted one is reopened instead of blocking re-enrollment.
+        $existing = Enrollment::withTrashed()->where([
             'student_profile_id' => $request->student_profile_id,
             'course_id'          => $request->course_id,
             'semester'           => $request->semester,
             'academic_year'      => $request->academic_year,
-        ])->exists();
+        ])->first();
 
-        if ($exists) {
+        if ($existing && ! $existing->trashed() && ! in_array($existing->status, ['dropped', 'rejected'])) {
             return response()->json(['success' => false, 'message' => 'Student already enrolled in this course for this semester.'], 422);
         }
 
-        // Check capacity
-        $course   = Course::findOrFail($request->course_id);
-        $enrolled = $course->enrollments()->where('status', 'approved')->count();
-        if ($enrolled >= $course->max_students) {
+        // Early capacity check for a clear message; approval re-checks under a lock
+        $course = Course::findOrFail($request->course_id);
+        if ($this->seatsLeft($course, $request->semester, $request->academic_year) < 1) {
             return response()->json(['success' => false, 'message' => 'Course has reached maximum capacity.'], 422);
         }
 
         try {
-            $enrollment = Enrollment::create([
-                'student_profile_id' => $request->student_profile_id,
-                'course_id'          => $request->course_id,
-                'semester'           => $request->semester,
-                'academic_year'      => $request->academic_year,
-                'section'            => $request->section,
-                'status'             => 'pending',
-            ]);
+            if ($existing) {
+                $existing->restore();
+                $existing->update([
+                    'status'      => 'pending',
+                    'section'     => $request->section,
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'remarks'     => null,
+                ]);
+                $enrollment = $existing;
+            } else {
+                $enrollment = Enrollment::create([
+                    'student_profile_id' => $request->student_profile_id,
+                    'course_id'          => $request->course_id,
+                    'semester'           => $request->semester,
+                    'academic_year'      => $request->academic_year,
+                    'section'            => $request->section,
+                    'status'             => 'pending',
+                ]);
+            }
         } catch (UniqueConstraintViolationException) {
             // A concurrent request enrolled the same student between the check above and this insert
             return response()->json(['success' => false, 'message' => 'Student already enrolled in this course for this semester.'], 422);
@@ -112,7 +124,7 @@ class EnrollmentController extends Controller
             if ($enrollment->fresh()->status !== 'pending') {
                 return 'Only pending enrollments can be approved.';
             }
-            if ($this->seatsLeft($course) < 1) {
+            if ($this->seatsLeft($course, $enrollment->semester, $enrollment->academic_year) < 1) {
                 return 'Course has reached maximum capacity.';
             }
 
@@ -176,14 +188,17 @@ class EnrollmentController extends Controller
             $count = 0;
             $skipped = 0;
             foreach ($courses as $course) {
-                $enrollments = $pending[$course->id];
-                $toApprove   = $enrollments->take(max(0, $this->seatsLeft($course)));
+                // Seats are per term, so fill each term of this course separately
+                foreach ($pending[$course->id]->groupBy(fn ($e) => $e->semester . '|' . $e->academic_year) as $enrollments) {
+                    $first     = $enrollments->first();
+                    $toApprove = $enrollments->take(max(0, $this->seatsLeft($course, $first->semester, $first->academic_year)));
 
-                Enrollment::whereIn('id', $toApprove->pluck('id'))
-                    ->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+                    Enrollment::whereIn('id', $toApprove->pluck('id'))
+                        ->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
 
-                $count   += $toApprove->count();
-                $skipped += $enrollments->count() - $toApprove->count();
+                    $count   += $toApprove->count();
+                    $skipped += $enrollments->count() - $toApprove->count();
+                }
             }
 
             return [$count, $skipped];
@@ -196,9 +211,14 @@ class EnrollmentController extends Controller
         return response()->json(['success' => true, 'message' => $message, 'approved' => $count, 'skipped' => $skipped]);
     }
 
-    private function seatsLeft(Course $course): int
+    /** Seats are per term; students whose results are published still hold their seat. */
+    private function seatsLeft(Course $course, string $semester, string $academicYear): int
     {
-        return $course->max_students - $course->enrollments()->where('status', 'approved')->count();
+        return $course->max_students - $course->enrollments()
+            ->where('semester', $semester)
+            ->where('academic_year', $academicYear)
+            ->whereIn('status', ['approved', 'completed'])
+            ->count();
     }
 
     // ── GET /api/enrollments/stats ────────────────────────────

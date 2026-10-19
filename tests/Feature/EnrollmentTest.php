@@ -36,7 +36,7 @@ class EnrollmentTest extends TestCase
         ]);
     }
 
-    private function pending(Course $course): Enrollment
+    private function pending(Course $course, string $semester = 'Fall', string $year = '2026'): Enrollment
     {
         $student = StudentProfile::create([
             'user_id'    => User::factory()->create()->id,
@@ -46,8 +46,8 @@ class EnrollmentTest extends TestCase
         return Enrollment::create([
             'student_profile_id' => $student->id,
             'course_id'          => $course->id,
-            'semester'           => 'Fall',
-            'academic_year'      => '2026',
+            'semester'           => $semester,
+            'academic_year'      => $year,
             'status'             => 'pending',
         ]);
     }
@@ -106,5 +106,68 @@ class EnrollmentTest extends TestCase
         $this->postJson('/api/enrollments', $payload)
             ->assertUnprocessable()
             ->assertJson(['message' => 'Student already enrolled in this course for this semester.']);
+    }
+
+    private function reEnroll(Enrollment $enrollment)
+    {
+        return $this->postJson('/api/enrollments', $enrollment->only(['student_profile_id', 'course_id', 'semester', 'academic_year']));
+    }
+
+    public function test_dropped_rejected_or_deleted_enrollments_can_be_reopened(): void
+    {
+        $course = $this->course(10);
+
+        $dropped = $this->pending($course);
+        $this->patchJson("/api/enrollments/{$dropped->id}/approve")->assertOk();
+        $this->patchJson("/api/enrollments/{$dropped->id}/drop")->assertOk();
+
+        $rejected = $this->pending($course);
+        $this->patchJson("/api/enrollments/{$rejected->id}/reject", ['reason' => 'Missing prerequisite'])->assertOk();
+
+        $deleted = $this->pending($course);
+        $deleted->delete();
+
+        foreach ([$dropped, $rejected, $deleted] as $enrollment) {
+            $this->reEnroll($enrollment)->assertCreated()->assertJsonPath('data.id', $enrollment->id);
+
+            $fresh = Enrollment::find($enrollment->id);
+            $this->assertSame('pending', $fresh->status);
+            $this->assertNull($fresh->approved_at);
+            $this->assertNull($fresh->remarks);
+        }
+
+        $this->assertSame(3, Enrollment::withTrashed()->count());
+    }
+
+    public function test_an_active_enrollment_still_blocks_a_duplicate(): void
+    {
+        $this->reEnroll($this->pending($this->course(10)))
+            ->assertUnprocessable()
+            ->assertJson(['message' => 'Student already enrolled in this course for this semester.']);
+    }
+
+    public function test_seats_are_counted_per_term(): void
+    {
+        $course = $this->course(1);
+
+        $this->patchJson('/api/enrollments/' . $this->pending($course, 'Fall', '2026')->id . '/approve')->assertOk();
+        $this->patchJson('/api/enrollments/' . $this->pending($course, 'Spring', '2027')->id . '/approve')->assertOk();
+        $this->patchJson('/api/enrollments/' . $this->pending($course, 'Fall', '2026')->id . '/approve')
+            ->assertUnprocessable()
+            ->assertJson(['message' => 'Course has reached maximum capacity.']);
+    }
+
+    public function test_bulk_approval_fills_each_term_separately(): void
+    {
+        $course = $this->course(1);
+        $ids = [
+            $this->pending($course, 'Fall', '2026')->id,
+            $this->pending($course, 'Fall', '2026')->id,
+            $this->pending($course, 'Spring', '2027')->id,
+        ];
+
+        $this->postJson('/api/enrollments/bulk-approve', ['enrollment_ids' => $ids])
+            ->assertOk()
+            ->assertJson(['approved' => 2, 'skipped' => 1]);
     }
 }
