@@ -6,14 +6,17 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\StudentsExport;
 
 class StudentController extends Controller
 {
     use LogsPageVisit;
+
+    private const GUARDIAN_FIELDS = ['father_name', 'father_phone', 'mother_name', 'mother_phone', 'guardian_name', 'guardian_relation', 'guardian_phone', 'guardian_email'];
 
     // ── GET /api/students ─────────────────────────────────────
     public function index(Request $request)
@@ -65,7 +68,7 @@ class StudentController extends Controller
     // ── POST /api/students ────────────────────────────────────
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             // User fields
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email',
@@ -81,9 +84,21 @@ class StudentController extends Controller
             'semester'      => 'nullable|string|max:20',
             'section'       => 'nullable|string|max:5',
             'admission_date'=> 'nullable|date',
+            'father_name'       => 'nullable|string|max:255',
+            'father_phone'      => 'nullable|string|max:20',
+            'mother_name'       => 'nullable|string|max:255',
+            'mother_phone'      => 'nullable|string|max:20',
+            'guardian_name'     => 'nullable|string|max:255',
+            'guardian_relation' => 'nullable|string|max:50',
+            'guardian_phone'    => 'nullable|string|max:20',
+            'guardian_email'    => 'nullable|email|max:255',
         ]);
 
-        DB::transaction(function () use ($request, &$student) {
+        // A personal temporary password unless the admin chose one; either way
+        // the student must replace it at first sign-in
+        $temporary = $request->filled('password') ? null : Str::password(10, symbols: false);
+
+        DB::transaction(function () use ($request, $data, $temporary, &$student) {
             // Create user account
             $user = User::create([
                 'name'          => $request->name,
@@ -91,7 +106,8 @@ class StudentController extends Controller
                 'phone'         => $request->phone,
                 'gender'        => $request->gender,
                 'date_of_birth' => $request->date_of_birth,
-                'password'      => Hash::make($request->password ?? 'password'),
+                'password'      => $request->password ?? $temporary,
+                'must_change_password' => true,
                 'student_id'    => $request->student_id,
                 'status'        => 'active',
             ]);
@@ -108,7 +124,7 @@ class StudentController extends Controller
                 'section'        => $request->section,
                 'admission_date' => $request->admission_date,
                 'academic_status'=> 'regular',
-            ]);
+            ] + Arr::only($data, self::GUARDIAN_FIELDS));
         });
 
         self::logVisit('students', 'create', 'created', "Created student: {$request->name}", [], [], StudentProfile::class, $student->id);
@@ -116,6 +132,7 @@ class StudentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Student created successfully.',
+            'credentials' => ['login' => $request->student_id, 'email' => $request->email, 'temporary_password' => $temporary],
             'data'    => $this->formatStudent($student->load(['user', 'department', 'program'])),
         ], 201);
     }
@@ -125,7 +142,7 @@ class StudentController extends Controller
     {
         $student = StudentProfile::with('user')->findOrFail($id);
 
-        $request->validate([
+        $data = $request->validate([
             'name'           => 'sometimes|string|max:255',
             'email'          => 'sometimes|email|unique:users,email,' . $student->user_id,
             'phone'          => 'nullable|string|max:20',
@@ -137,14 +154,23 @@ class StudentController extends Controller
             'section'        => 'nullable|string|max:5',
             'academic_status'=> 'nullable|in:regular,on-leave,suspended,graduated,dropped',
             'cgpa'           => 'nullable|numeric|min:0|max:4',
+            'father_name'       => 'nullable|string|max:255',
+            'father_phone'      => 'nullable|string|max:20',
+            'mother_name'       => 'nullable|string|max:255',
+            'mother_phone'      => 'nullable|string|max:20',
+            'guardian_name'     => 'nullable|string|max:255',
+            'guardian_relation' => 'nullable|string|max:50',
+            'guardian_phone'    => 'nullable|string|max:20',
+            'guardian_email'    => 'nullable|email|max:255',
         ]);
 
-        DB::transaction(function () use ($request, $student) {
+        DB::transaction(function () use ($request, $data, $student) {
             // Update user
             $student->user->update($request->only(['name', 'email', 'phone', 'gender', 'date_of_birth']));
 
             // Update profile
-            $student->update($request->except(['name', 'email', 'phone', 'gender', 'date_of_birth', 'password']));
+            // Only validated profile fields; never user_id, student_id or other keys from the request
+            $student->update(Arr::except($data, ['name', 'email', 'phone', 'gender', 'date_of_birth']));
         });
 
         self::logVisit('students', 'edit', 'updated', "Updated student: {$student->user->name}", [], [], StudentProfile::class, $student->id);
@@ -245,6 +271,7 @@ class StudentController extends Controller
                 'mother_phone'         => $s->mother_phone,
                 'guardian_name'        => $s->guardian_name,
                 'guardian_phone'       => $s->guardian_phone,
+                'guardian_email'       => $s->guardian_email,
                 'present_address'      => $s->present_address,
                 'permanent_address'    => $s->permanent_address,
                 'ssc_school'           => $s->ssc_school,

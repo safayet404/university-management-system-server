@@ -12,6 +12,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\FacultyController;
+use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AttendanceController;
@@ -221,6 +222,13 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::post('/',       [TimetableController::class, 'store'])->middleware('permission:timetable.create');
         Route::put('/{id}',    [TimetableController::class, 'update'])->middleware('permission:timetable.edit');
         Route::delete('/{id}', [TimetableController::class, 'destroy'])->middleware('permission:timetable.delete');
+    });
+
+    // Personal emails to one person (user, guardian or any address)
+    Route::prefix('communications')->group(function () {
+        Route::get('/recipients', [CommunicationController::class, 'recipients'])->middleware('permission:communications.send');
+        Route::get('/email',      [CommunicationController::class, 'index'])->middleware('permission:communications.send|communications.read');
+        Route::post('/email',     [CommunicationController::class, 'send'])->middleware(['permission:communications.send', 'throttle:10,1']);
     });
 
     Route::prefix('notifications')->group(function () {

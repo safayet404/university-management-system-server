@@ -19,7 +19,7 @@ class Admission extends Model
         'hsc_board', 'hsc_year', 'hsc_gpa', 'hsc_group',
         'program_id', 'department_id', 'semester', 'academic_year', 'quota',
         'father_name', 'father_occupation', 'father_phone',
-        'mother_name', 'mother_occupation', 'guardian_phone', 'family_income',
+        'mother_name', 'mother_occupation', 'guardian_phone', 'guardian_email', 'family_income',
         'status', 'remarks', 'rejection_reason', 'merit_score',
         'reviewed_by', 'reviewed_at', 'decided_by', 'decided_at',
         'student_profile_id',

@@ -87,6 +87,7 @@ class AdmissionController extends Controller
             'ssc_gpa'       => 'nullable|numeric|min:0|max:5',
             'hsc_gpa'       => 'nullable|numeric|min:0|max:5',
             'hsc_group'     => 'nullable|in:Science,Arts,Commerce,Vocational',
+            'guardian_email'=> 'nullable|email|max:255',
         ]);
 
         $admission = Admission::create([
@@ -212,6 +213,7 @@ class AdmissionController extends Controller
                 'father_name'     => $admission->father_name,
                 'mother_name'     => $admission->mother_name,
                 'guardian_phone'  => $admission->guardian_phone,
+                'guardian_email'  => $admission->guardian_email,
                 'academic_status' => 'regular',
                 'admission_date'  => now()->format('Y-m-d'),
             ]);
@@ -353,6 +355,7 @@ class AdmissionController extends Controller
                 'father_phone'      => $a->father_phone,
                 'mother_name'       => $a->mother_name,
                 'guardian_phone'    => $a->guardian_phone,
+                'guardian_email'    => $a->guardian_email,
                 'family_income'     => $a->family_income,
                 'quota'             => $a->quota,
             ]);

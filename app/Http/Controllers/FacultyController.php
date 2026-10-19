@@ -6,8 +6,9 @@ use App\Models\FacultyProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\FacultyExport;
 
@@ -66,7 +67,7 @@ class FacultyController extends Controller
     // ── POST /api/faculty ─────────────────────────────────────
     public function store(Request $request)
     {
-        $request->validate([
+        $data = $request->validate([
             'name'              => 'required|string|max:255',
             'email'             => 'required|email|unique:users,email',
             'phone'             => 'nullable|string|max:20',
@@ -80,13 +81,18 @@ class FacultyController extends Controller
             'joining_date'      => 'nullable|date',
         ]);
 
-        DB::transaction(function () use ($request, &$faculty) {
+        // A personal temporary password unless the admin chose one; either way
+        // the faculty member must replace it at first sign-in
+        $temporary = $request->filled('password') ? null : Str::password(10, symbols: false);
+
+        DB::transaction(function () use ($request, $temporary, &$faculty) {
             $user = User::create([
                 'name'        => $request->name,
                 'email'       => $request->email,
                 'phone'       => $request->phone,
                 'gender'      => $request->gender,
-                'password'    => Hash::make($request->password ?? 'password'),
+                'password'    => $request->password ?? $temporary,
+                'must_change_password' => true,
                 'employee_id' => $request->employee_id,
                 'status'      => 'active',
             ]);
@@ -109,6 +115,7 @@ class FacultyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Faculty created successfully.',
+            'credentials' => ['login' => $request->email, 'email' => $request->email, 'temporary_password' => $temporary],
             'data'    => $this->formatFaculty($faculty->load(['user', 'department'])),
         ], 201);
     }
@@ -118,7 +125,7 @@ class FacultyController extends Controller
     {
         $faculty = FacultyProfile::with('user')->findOrFail($id);
 
-        $request->validate([
+        $data = $request->validate([
             'name'               => 'sometimes|string|max:255',
             'email'              => 'sometimes|email|unique:users,email,' . $faculty->user_id,
             'phone'              => 'nullable|string|max:20',
@@ -142,9 +149,10 @@ class FacultyController extends Controller
             'google_scholar'     => 'nullable|string|max:255',
         ]);
 
-        DB::transaction(function () use ($request, $faculty) {
+        DB::transaction(function () use ($request, $data, $faculty) {
             $faculty->user->update($request->only(['name', 'email', 'phone', 'gender', 'date_of_birth']));
-            $faculty->update($request->except(['name', 'email', 'phone', 'gender', 'date_of_birth', 'password']));
+            // Only validated profile fields; never user_id or other keys from the request
+            $faculty->update(Arr::except($data, ['name', 'email', 'phone', 'gender', 'date_of_birth']));
         });
 
         self::logVisit('faculty', 'edit', 'updated', "Updated faculty: {$faculty->user->name}", [], [], FacultyProfile::class, $faculty->id);

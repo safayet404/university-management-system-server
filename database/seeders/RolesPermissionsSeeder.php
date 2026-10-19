@@ -88,6 +88,9 @@ class RolesPermissionsSeeder extends Seeder
             // Notifications
             'notifications.read', 'notifications.create',
 
+            // Personal emails from inside the system
+            'communications.send', 'communications.read',
+
             // Settings
             'settings.read', 'settings.edit',
         ];
@@ -176,6 +179,7 @@ class RolesPermissionsSeeder extends Seeder
             'admissions.approve', 'admissions.reject', 'admissions.export',
             'students.read', 'students.create',
             'notifications.read',
+            'communications.send',
         ]);
 
         // Applicant (external user applying for admission)

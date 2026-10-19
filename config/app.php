@@ -149,6 +149,14 @@ return [
 
     'avatar_uploads' => (bool) env('AVATAR_UPLOADS', true),
 
+    // Personal emails written from inside the system (CommunicationController)
+    'mail_daily_limit_per_user' => (int) env('MAIL_DAILY_LIMIT_PER_USER', 20),
+    // Comma-separated recipient domains; empty allows any domain
+    'mail_allowed_domains' => array_values(array_filter(array_map(
+        fn ($d) => strtolower(trim($d)),
+        explode(',', (string) env('MAIL_ALLOWED_DOMAINS', ''))
+    ))),
+
     // Where the Nuxt app lives; password reset emails link back to it
     'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/'),
 
