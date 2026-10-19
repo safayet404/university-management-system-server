@@ -16,6 +16,7 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\AcademicTerm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -89,8 +90,8 @@ class ReportController extends Controller
     {
         self::logVisit('reports', 'fees', 'visited', 'Viewed fee report');
 
-        $semester    = $request->get('semester', 'Fall 2024');
-        $academicYear= $request->get('academic_year', '2024-2025');
+        $semester    = $request->get('semester', AcademicTerm::current()['semester']);
+        $academicYear= $request->get('academic_year', AcademicTerm::current()['academic_year']);
 
         $invoices = FeeInvoice::where('semester', $semester)
             ->where('academic_year', $academicYear)
@@ -101,11 +102,15 @@ class ReportController extends Controller
             ->where('academic_year', $academicYear)
         )->get();
 
+        // Amounts are net of discounts and include fines, matching what students are billed
+        $net  = fn ($rows) => round($rows->sum(fn ($i) => $i->net_amount), 2);
+        $paid = fn ($rows) => round($rows->sum(fn ($i) => (float) $i->paid_amount), 2);
+
         $byType = $invoices->groupBy('fee_type')->map(fn($g, $type) => [
             'fee_type'  => $type,
-            'invoiced'  => $g->sum('amount'),
-            'collected' => $g->sum('paid_amount'),
-            'pending'   => $g->sum('amount') - $g->sum('paid_amount'),
+            'invoiced'  => $net($g),
+            'collected' => $paid($g),
+            'pending'   => round($net($g) - $paid($g), 2),
             'count'     => $g->count(),
         ])->values();
 
@@ -117,14 +122,15 @@ class ReportController extends Controller
 
         return response()->json([
             'success' => true,
+            'term'    => ['semester' => $semester, 'academic_year' => $academicYear],
             'summary' => [
-                'total_invoiced'  => $invoices->sum('amount'),
-                'total_collected' => $invoices->sum('paid_amount'),
-                'total_pending'   => $invoices->sum('amount') - $invoices->sum('paid_amount'),
+                'total_invoiced'  => $net($invoices),
+                'total_collected' => $paid($invoices),
+                'total_pending'   => round($net($invoices) - $paid($invoices), 2),
                 'paid_count'      => $invoices->where('status', 'paid')->count(),
                 'unpaid_count'    => $invoices->whereIn('status', ['unpaid', 'overdue'])->count(),
-                'collection_rate' => $invoices->sum('amount') > 0
-                    ? round(($invoices->sum('paid_amount') / $invoices->sum('amount')) * 100, 1) : 0,
+                'collection_rate' => $net($invoices) > 0
+                    ? round($paid($invoices) / $net($invoices) * 100, 1) : 0,
             ],
             'by_type'    => $byType,
             'by_month'   => $byMonth,
@@ -137,7 +143,7 @@ class ReportController extends Controller
         self::logVisit('reports', 'attendance', 'visited', 'Viewed attendance report');
 
         $semester    = $request->get('semester', 'Spring 2025');
-        $academicYear= $request->get('academic_year', '2024-2025');
+        $academicYear= $request->get('academic_year', AcademicTerm::current()['academic_year']);
 
         $sessions = AttendanceSession::where('semester', $semester)
             ->where('academic_year', $academicYear)
@@ -179,8 +185,8 @@ class ReportController extends Controller
     {
         self::logVisit('reports', 'exams', 'visited', 'Viewed exam report');
 
-        $semester    = $request->get('semester', 'Fall 2024');
-        $academicYear= $request->get('academic_year', '2024-2025');
+        $semester    = $request->get('semester', AcademicTerm::current()['semester']);
+        $academicYear= $request->get('academic_year', AcademicTerm::current()['academic_year']);
 
         $grades = CourseGrade::where('semester', $semester)
             ->where('academic_year', $academicYear)
@@ -292,7 +298,7 @@ class ReportController extends Controller
 
     private function getFeeReportData(Request $request): array
     {
-        $semester = $request->get('semester', 'Fall 2024');
+        $semester = $request->get('semester', AcademicTerm::current()['semester']);
         $invoices = FeeInvoice::with('student.user')->where('semester', $semester)->get();
         return ['invoices' => $invoices, 'semester' => $semester, 'total_invoiced' => $invoices->sum('amount'), 'total_collected' => $invoices->sum('paid_amount')];
     }
@@ -307,7 +313,7 @@ class ReportController extends Controller
 
     private function getExamReportData(Request $request): array
     {
-        $semester = $request->get('semester', 'Fall 2024');
+        $semester = $request->get('semester', AcademicTerm::current()['semester']);
         $grades   = CourseGrade::with(['student.user', 'course'])->where('semester', $semester)->where('is_published', true)->get();
         return ['grades' => $grades, 'semester' => $semester, 'avg_gpa' => round($grades->avg('grade_point') ?? 0, 2)];
     }

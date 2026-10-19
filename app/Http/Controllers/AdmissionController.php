@@ -9,12 +9,25 @@ use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AdmissionController extends Controller
 {
     use LogsPageVisit;
+
+    /** Set only by the workflow below, never from request input. */
+    private const WORKFLOW_FIELDS = [
+        'application_number', 'status', 'merit_score', 'student_profile_id',
+        'reviewed_by', 'reviewed_at', 'decided_by', 'decided_at',
+    ];
+
+    /** Which statuses each action may move an application from. */
+    private const ALLOWED_FROM = [
+        'under_review' => ['applied'],
+        'shortlisted'  => ['applied', 'under_review'],
+        'accepted'     => ['applied', 'under_review', 'shortlisted'],
+        'rejected'     => ['applied', 'under_review', 'shortlisted', 'accepted'],
+    ];
 
     // ── GET /api/admissions ───────────────────────────────────
     public function index(Request $request)
@@ -77,7 +90,7 @@ class AdmissionController extends Controller
         ]);
 
         $admission = Admission::create([
-            ...$request->all(),
+            ...$request->except(self::WORKFLOW_FIELDS),
             'application_number' => 'APP-' . date('Y') . '-' . strtoupper(Str::random(6)),
             'status'             => 'applied',
             'merit_score'        => $this->calculateMeritScore($request->ssc_gpa, $request->hsc_gpa),
@@ -92,7 +105,7 @@ class AdmissionController extends Controller
     public function update(Request $request, $id)
     {
         $admission = Admission::findOrFail($id);
-        $admission->update($request->except(['application_number', 'status', 'student_profile_id']));
+        $admission->update($request->except(self::WORKFLOW_FIELDS));
 
         if ($request->filled('ssc_gpa') || $request->filled('hsc_gpa')) {
             $admission->merit_score = $this->calculateMeritScore($admission->ssc_gpa, $admission->hsc_gpa);
@@ -106,6 +119,7 @@ class AdmissionController extends Controller
     public function review($id)
     {
         $admission = Admission::findOrFail($id);
+        if ($error = $this->cannotMove($admission, 'under_review')) return $error;
         $admission->update(['status' => 'under_review', 'reviewed_by' => auth()->id(), 'reviewed_at' => now()]);
         self::logVisit('admissions', 'review', 'updated', "Marked under review: {$admission->application_number}", [], [], Admission::class, $admission->id);
         return response()->json(['success' => true, 'message' => 'Marked as under review.']);
@@ -115,6 +129,7 @@ class AdmissionController extends Controller
     public function shortlist($id)
     {
         $admission = Admission::findOrFail($id);
+        if ($error = $this->cannotMove($admission, 'shortlisted')) return $error;
         $admission->update(['status' => 'shortlisted']);
         self::logVisit('admissions', 'shortlist', 'updated', "Shortlisted: {$admission->application_number}", [], [], Admission::class, $admission->id);
         return response()->json(['success' => true, 'message' => 'Applicant shortlisted.']);
@@ -124,6 +139,7 @@ class AdmissionController extends Controller
     public function accept(Request $request, $id)
     {
         $admission = Admission::findOrFail($id);
+        if ($error = $this->cannotMove($admission, 'accepted')) return $error;
         $admission->update([
             'status'     => 'accepted',
             'decided_by' => auth()->id(),
@@ -138,6 +154,7 @@ class AdmissionController extends Controller
     public function reject(Request $request, $id)
     {
         $admission = Admission::findOrFail($id);
+        if ($error = $this->cannotMove($admission, 'rejected')) return $error;
         $admission->update([
             'status'           => 'rejected',
             'decided_by'       => auth()->id(),
@@ -152,38 +169,37 @@ class AdmissionController extends Controller
     // Convert accepted applicant to student
     public function enroll($id)
     {
-        $admission = Admission::with(['program', 'department'])->findOrFail($id);
+        $result = DB::transaction(function () use ($id) {
+            // Lock the application so a double submit cannot create two students
+            $admission = Admission::with(['program', 'department'])->lockForUpdate()->findOrFail($id);
 
-        if ($admission->status !== 'accepted') {
-            return response()->json(['success' => false, 'message' => 'Only accepted applications can be enrolled.'], 422);
-        }
+            if ($admission->status !== 'accepted') {
+                return 'Only accepted applications can be enrolled.';
+            }
+            if ($admission->student_profile_id) {
+                return 'Already enrolled as student.';
+            }
+            if (User::withTrashed()->where('email', $admission->email)->exists()) {
+                return "An account already exists for {$admission->email}.";
+            }
 
-        if ($admission->student_profile_id) {
-            return response()->json(['success' => false, 'message' => 'Already enrolled as student.'], 422);
-        }
+            $studentId = $this->nextStudentId($admission);
+            // Each student gets their own temporary password and must replace it on first login
+            $temporaryPassword = Str::password(10, symbols: false);
 
-        DB::transaction(function () use ($admission) {
-            // Generate student ID
-            $dept     = $admission->department;
-            $year     = date('y');
-            $sem      = str_contains(strtolower($admission->semester), 'spring') ? 1 : 2;
-            $count    = StudentProfile::where('department_id', $dept?->id)->count() + 1;
-            $studentId = "{$year}{$sem}-" . str_pad($count, 4, '0', STR_PAD_LEFT) . '-' . ($dept?->code ?? 'GEN');
-
-            // Create user account
             $user = User::create([
-                'name'        => $admission->full_name,
-                'email'       => $admission->email,
-                'phone'       => $admission->phone,
-                'gender'      => $admission->gender,
-                'date_of_birth'=> $admission->date_of_birth,
-                'password'    => Hash::make('password'),
-                'status'      => 'active',
-                'student_id'  => $studentId,
+                'name'                 => $admission->full_name,
+                'email'                => $admission->email,
+                'phone'                => $admission->phone,
+                'gender'               => $admission->gender,
+                'date_of_birth'        => $admission->date_of_birth,
+                'password'             => $temporaryPassword,
+                'must_change_password' => true,
+                'status'               => 'active',
+                'student_id'           => $studentId,
             ]);
             $user->assignRole('student');
 
-            // Create student profile
             $profile = StudentProfile::create([
                 'user_id'         => $user->id,
                 'student_id'      => $studentId,
@@ -200,19 +216,70 @@ class AdmissionController extends Controller
                 'admission_date'  => now()->format('Y-m-d'),
             ]);
 
-            // Update admission
             $admission->update(['status' => 'enrolled', 'student_profile_id' => $profile->id]);
+
+            return [$admission, $studentId, $temporaryPassword];
         });
+
+        if (is_string($result)) {
+            return response()->json(['success' => false, 'message' => $result], 422);
+        }
+        [$admission, $studentId, $temporaryPassword] = $result;
 
         self::logVisit('admissions', 'enroll', 'created', "Enrolled applicant: {$admission->application_number}", [], [], Admission::class, $admission->id);
 
-        return response()->json(['success' => true, 'message' => 'Applicant enrolled as student successfully.', 'data' => $this->formatAdmission($admission->fresh())]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Applicant enrolled as student successfully.',
+            // Shown once so the officer can hand it to the student; it is not stored in plain text
+            'credentials' => ['login' => $studentId, 'email' => $admission->email, 'temporary_password' => $temporaryPassword],
+            'data'    => $this->formatAdmission($admission->fresh()),
+        ]);
+    }
+
+    /**
+     * Student IDs look like "251-0007-CSE": year, term (1 spring / 2 other),
+     * serial within the department, department code. The department row is
+     * locked so concurrent enrollments get consecutive serials, and the serial
+     * continues from the highest existing one so deleted students never cause
+     * a duplicate.
+     */
+    private function nextStudentId(Admission $admission): string
+    {
+        $dept   = Department::lockForUpdate()->find($admission->department_id);
+        $prefix = date('y') . (str_contains(strtolower($admission->semester), 'spring') ? 1 : 2);
+        $code   = $dept?->code ?? 'GEN';
+
+        // Student IDs live on both the profile and the user account (both unique),
+        // and either may outlive the other, so look at both
+        $pattern = "{$prefix}-%-{$code}";
+        $highest = StudentProfile::withTrashed()->where('student_id', 'like', $pattern)->pluck('student_id')
+            ->merge(User::withTrashed()->where('student_id', 'like', $pattern)->pluck('student_id'))
+            ->map(fn ($id) => (int) explode('-', $id)[1])
+            ->max() ?? 0;
+
+        return "{$prefix}-" . str_pad($highest + 1, 4, '0', STR_PAD_LEFT) . "-{$code}";
+    }
+
+    private function cannotMove(Admission $admission, string $to)
+    {
+        if (in_array($admission->status, self::ALLOWED_FROM[$to], true)) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => "An application that is {$admission->status} cannot be moved to " . str_replace('_', ' ', $to) . '.',
+        ], 422);
     }
 
     // ── DELETE /api/admissions/{id} ───────────────────────────
     public function destroy($id)
     {
         $admission = Admission::findOrFail($id);
+        if ($admission->status === 'enrolled') {
+            return response()->json(['success' => false, 'message' => 'An enrolled application cannot be deleted; it is linked to a student record.'], 422);
+        }
         $admission->delete();
         return response()->json(['success' => true, 'message' => 'Application deleted.']);
     }
