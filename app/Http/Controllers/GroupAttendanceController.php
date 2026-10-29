@@ -102,7 +102,7 @@ class GroupAttendanceController extends Controller
     public function report(Request $request, $id)
     {
         $group = StudentGroup::findOrFail($id);
-        abort_unless($this->canView($request, $group), 403);
+        Gate::authorize('view-group', $group);
 
         $month = $request->validate(['month' => 'nullable|date_format:Y-m'])['month'] ?? today()->format('Y-m');
         $from  = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
@@ -181,16 +181,5 @@ class GroupAttendanceController extends Controller
             ->where('status', 'active')
             ->orderBy('roll_number')
             ->get();
-    }
-
-    /** Takers, plus any teacher of a subject in the group, can read the report. */
-    private function canView(Request $request, StudentGroup $group): bool
-    {
-        if (Gate::allows('take-group-attendance', $group)) {
-            return true;
-        }
-        $facultyId = $request->user()->facultyProfile?->id;
-
-        return $facultyId && $group->groupSubjects()->where('faculty_profile_id', $facultyId)->exists();
     }
 }

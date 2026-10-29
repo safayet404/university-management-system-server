@@ -30,6 +30,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentGroupController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\TermExamController;
 
 Route::get('/app-config', [AuthController::class, 'appConfig']);
 
@@ -252,6 +253,23 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::post('/',       [SubjectController::class, 'store'])->middleware('permission:classes.manage');
         Route::put('/{id}',    [SubjectController::class, 'update'])->middleware('permission:classes.manage');
         Route::delete('/{id}', [SubjectController::class, 'destroy'])->middleware('permission:classes.manage');
+    });
+
+    // Term exams (school) and model tests (coaching): marks, results, report cards
+    Route::prefix('term-exams')->group(function () {
+        Route::get('/',                                [TermExamController::class, 'index'])->middleware('permission:grades.read');
+        Route::post('/',                               [TermExamController::class, 'store'])->middleware('permission:classes.manage');
+        Route::get('/{id}',                            [TermExamController::class, 'show'])->middleware('permission:grades.read');
+        Route::put('/{id}',                            [TermExamController::class, 'update'])->middleware('permission:classes.manage');
+        Route::delete('/{id}',                         [TermExamController::class, 'destroy'])->middleware('permission:classes.manage');
+        Route::post('/{id}/publish',                   [TermExamController::class, 'publish'])->middleware('permission:classes.manage');
+        Route::post('/{id}/unpublish',                 [TermExamController::class, 'unpublish'])->middleware('permission:classes.manage');
+        // Subject teachers (enter-exam-marks gate) and class teachers (remarks)
+        Route::get('/{id}/groups/{groupId}/marks',     [TermExamController::class, 'marksheet'])->middleware('permission:grades.create');
+        Route::put('/{id}/groups/{groupId}/marks',     [TermExamController::class, 'saveMarks'])->middleware('permission:grades.create');
+        Route::put('/{id}/groups/{groupId}/remarks',   [TermExamController::class, 'saveRemarks'])->middleware('permission:grades.create');
+        Route::get('/{id}/groups/{groupId}/results',   [TermExamController::class, 'results'])->middleware('permission:grades.read');
+        Route::get('/{id}/groups/{groupId}/report-cards', [TermExamController::class, 'reportCards'])->middleware('permission:grades.read');
     });
 
     // Personal emails to one person (user, guardian or any address)

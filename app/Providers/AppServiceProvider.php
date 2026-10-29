@@ -45,6 +45,15 @@ class AppServiceProvider extends ServiceProvider
                 || ($group->kind === 'batch' && $group->groupSubjects()->where('faculty_profile_id', $facultyId)->exists());
         });
 
+        // Attendance reports and exam results of a section or batch: the above,
+        // plus any teacher of one of its subjects
+        Gate::define('view-group', fn (User $user, StudentGroup $group) => Gate::forUser($user)->allows('take-group-attendance', $group)
+            || ($user->facultyProfile && $group->groupSubjects()->where('faculty_profile_id', $user->facultyProfile->id)->exists()));
+
+        // Exam marks of one subject in a section or batch: that subject's teacher
+        Gate::define('enter-exam-marks', fn (User $user, StudentGroup $group, int $subjectId) => $user->can('classes.manage')
+            || ($user->facultyProfile && $group->groupSubjects()->where('subject_id', $subjectId)->where('faculty_profile_id', $user->facultyProfile->id)->exists()));
+
         // Reset links open the frontend, which posts the token back to the API
         ResetPassword::toMailUsing(function ($user, string $token) {
             $url     = config('app.frontend_url') . '/reset-password?' . http_build_query(['token' => $token, 'email' => $user->email]);
