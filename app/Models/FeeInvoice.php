@@ -10,7 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 class FeeInvoice extends Model
 {
     use SoftDeletes, LogsActivity;
-    protected $fillable = ['invoice_number', 'student_profile_id', 'fee_structure_id', 'fee_type', 'description', 'amount', 'discount', 'fine', 'paid_amount', 'semester', 'academic_year', 'due_date', 'status', 'remarks'];
+    protected $fillable = ['invoice_number', 'student_profile_id', 'fee_structure_id', 'student_group_id', 'billing_month', 'fee_type', 'description', 'amount', 'discount', 'fine', 'paid_amount', 'semester', 'academic_year', 'due_date', 'status', 'remarks'];
     protected $casts = ['amount' => 'decimal:2', 'discount' => 'decimal:2', 'fine' => 'decimal:2', 'paid_amount' => 'decimal:2', 'due_date' => 'date'];
     public function getActivitylogOptions(): LogOptions
     {
@@ -23,6 +23,10 @@ class FeeInvoice extends Model
     public function feeStructure()
     {
         return $this->belongsTo(FeeStructure::class);
+    }
+    public function group()
+    {
+        return $this->belongsTo(StudentGroup::class, 'student_group_id');
     }
     public function payments()
     {

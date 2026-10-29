@@ -11,7 +11,6 @@ use App\Models\TermExam;
 use App\Support\ExamResults;
 use App\Support\Institution;
 use App\Traits\LogsPageVisit;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -272,15 +271,7 @@ class TermExamController extends Controller
         }
         abort_if($students->isEmpty(), 422, "This {$group->kind} has no students.");
 
-        $pdf = Pdf::loadView('exams.report-card', [
-            'institution'  => config('app.name'),
-            'exam'         => $exam,
-            'group'        => $group,
-            'mode'         => ExamResults::mode($exam),
-            'students'     => $students,
-            'sectionSize'  => $group->activeMembers()->count(),
-            'generated_at' => now()->format('d M Y'),
-        ])->setPaper('a4', 'portrait');
+        $pdf = ExamResults::reportCards($exam, $group, $students);
 
         $name = Str::slug($studentId ? "{$exam->name} {$students[0]['name']}" : "{$exam->name} {$group->display_name}") . '.pdf';
 

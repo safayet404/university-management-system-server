@@ -19,6 +19,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GroupAttendanceController;
+use App\Http\Controllers\GroupFeeController;
 use App\Http\Controllers\FacultyPortalController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\LibraryController;
@@ -186,6 +187,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::post('/invoices',               [FeeController::class, 'storeInvoice'])->middleware('permission:fees.create');
         Route::post('/invoices/bulk-generate', [FeeController::class, 'bulkGenerate'])->middleware('permission:fees.create');
         Route::post('/invoices/{id}/pay',      [FeeController::class, 'collectPayment'])->middleware('permission:fees.collect');
+        // Schools and coaching centres: monthly fees per section/batch
+        Route::get('/monthly',                 [GroupFeeController::class, 'overview'])->middleware('permission:fees.read');
+        Route::post('/monthly/generate',       [GroupFeeController::class, 'generateAll'])->middleware('permission:fees.create');
+        Route::get('/payments/{id}/receipt',   [GroupFeeController::class, 'receipt'])->middleware('permission:fees.read|fees.collect|fees.own');
     });
 
     Route::prefix('admissions')->group(function () {
@@ -247,6 +252,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::get('/{id}/attendance',          [GroupAttendanceController::class, 'sheet'])->middleware('permission:attendance.create');
         Route::put('/{id}/attendance',          [GroupAttendanceController::class, 'save'])->middleware('permission:attendance.create');
         Route::get('/{id}/attendance/report',   [GroupAttendanceController::class, 'report'])->middleware('permission:attendance.read');
+        // Monthly fees
+        Route::get('/{id}/fees',                [GroupFeeController::class, 'sheet'])->middleware('permission:fees.read');
+        Route::post('/{id}/fees/generate',      [GroupFeeController::class, 'generate'])->middleware('permission:fees.create');
+        Route::patch('/{id}/members/{memberId}/discount', [GroupFeeController::class, 'discount'])->middleware('permission:fees.edit');
     });
     Route::prefix('subjects')->group(function () {
         Route::get('/',        [SubjectController::class, 'index'])->middleware('permission:classes.read');

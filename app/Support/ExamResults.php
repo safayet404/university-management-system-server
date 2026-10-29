@@ -6,6 +6,7 @@ use App\Models\ExamMark;
 use App\Models\ExamRemark;
 use App\Models\StudentGroup;
 use App\Models\TermExam;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
 
 /**
@@ -118,5 +119,19 @@ class ExamResults
         }
 
         return $sheets;
+    }
+
+    /** Report cards (one A4 page per student) of some students of one group. */
+    public static function reportCards(TermExam $exam, StudentGroup $group, Collection $students)
+    {
+        return Pdf::loadView('exams.report-card', [
+            'institution'  => config('app.name'),
+            'exam'         => $exam,
+            'group'        => $group,
+            'mode'         => self::mode($exam),
+            'students'     => $students->values(),
+            'sectionSize'  => $group->activeMembers()->count(),
+            'generated_at' => now()->format('d M Y'),
+        ])->setPaper('a4', 'portrait');
     }
 }
