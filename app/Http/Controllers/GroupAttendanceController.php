@@ -110,7 +110,7 @@ class GroupAttendanceController extends Controller
 
         $days = DailyAttendance::with('records')
             ->where('student_group_id', $group->id)
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('date', '>=', $from)->whereDate('date', '<=', $to)   // whereDate: dates may carry a time part
             ->orderBy('date')
             ->get();
 

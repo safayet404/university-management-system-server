@@ -114,7 +114,10 @@ class DemoAccountsSeeder extends Seeder
         $this->seedAttendance($student, $facultyUser, $current, $term);
         $this->seedClassmates($student, $current->take(2), $department, $term);
         $this->seedTimetable($current, $faculty, $department, $term);
-        $this->seedFees($student, $term);
+        // Schools and coaching centres bill monthly instead (SchoolDemoSeeder)
+        if (\App\Support\Institution::isUniversity()) {
+            $this->seedFees($student, $term);
+        }
 
         $student->update(['cgpa' => GradeReport::for($student)['cgpa'] ?? 0]);
 

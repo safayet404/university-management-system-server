@@ -16,6 +16,11 @@ class FeeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Semester fees are a university thing; schools and coaching centres bill monthly (SchoolDemoSeeder)
+        if (! \App\Support\Institution::isUniversity()) {
+            return;
+        }
+
         $faker    = \Faker\Factory::create();
         $admin    = User::role('super-admin')->first();
         $semester = 'Fall 2024';

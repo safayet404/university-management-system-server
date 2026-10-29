@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
 
         // Schools and coaching centres also get class levels and subjects
         if (! \App\Support\Institution::isUniversity()) {
-            $this->call(SchoolStructureSeeder::class);
+            $this->call([SchoolStructureSeeder::class, SchoolDemoSeeder::class]);
         }
     }
 }

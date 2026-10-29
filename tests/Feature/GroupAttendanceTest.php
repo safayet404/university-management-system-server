@@ -119,6 +119,16 @@ class GroupAttendanceTest extends TestCase
         $this->take(today()->toDateString(), ['present'], $batch)->assertOk();
     }
 
+    public function test_monthly_report_includes_the_last_day_of_the_month(): void
+    {
+        $last = today()->subMonth()->endOfMonth()->startOfDay();
+        $this->take($last->toDateString(), ['present', 'present', 'present'])->assertOk();
+
+        $report = $this->getJson("/api/student-groups/{$this->section->id}/attendance/report?month=" . $last->format('Y-m'))->assertOk()->json('data');
+
+        $this->assertSame(1, $report['days_held']);
+    }
+
     public function test_monthly_report_counts_late_as_attended_and_leaves_out_leave(): void
     {
         $start = today()->startOfMonth();

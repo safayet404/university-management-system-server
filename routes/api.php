@@ -27,6 +27,7 @@ use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\TimetableController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SchoolPortalController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentGroupController;
@@ -64,6 +65,12 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::get('/attendance', [StudentPortalController::class, 'attendance'])->middleware('permission:attendance.own');
         Route::get('/fees',       [StudentPortalController::class, 'fees'])->middleware('permission:fees.own');
         Route::get('/timetable',  [StudentPortalController::class, 'timetable'])->middleware('permission:timetable.read');
+        // Schools and coaching centres
+        Route::get('/overview-school',  [SchoolPortalController::class, 'overview'])->middleware('permission:grades.own');
+        Route::get('/class',            [SchoolPortalController::class, 'myClass'])->middleware('permission:grades.own');
+        Route::get('/daily-attendance', [SchoolPortalController::class, 'dailyAttendance'])->middleware('permission:attendance.own');
+        Route::get('/exam-results',     [SchoolPortalController::class, 'examResults'])->middleware('permission:grades.own');
+        Route::get('/exam-results/{examId}/report-card', [SchoolPortalController::class, 'reportCard'])->middleware('permission:grades.own');
     });
 
     // Faculty self-service portal: the caller's own courses and schedule

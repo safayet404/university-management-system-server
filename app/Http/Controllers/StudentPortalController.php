@@ -126,6 +126,7 @@ class StudentPortalController extends Controller
                 'due_date'       => $i->due_date?->format('Y-m-d'),
                 'status'         => $i->status,
                 'payments'       => $i->payments->map(fn ($p) => [
+                    'id'             => $p->id,
                     'transaction_id' => $p->transaction_id,
                     'amount'         => (float) $p->amount,
                     'method'         => $p->payment_method,
