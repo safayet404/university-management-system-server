@@ -18,6 +18,7 @@ use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\GroupAttendanceController;
 use App\Http\Controllers\FacultyPortalController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\LibraryController;
@@ -230,6 +231,7 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
 
     // Schools and coaching centres: class levels, sections/batches, subjects
     Route::get('/class-levels', [StudentGroupController::class, 'levels'])->middleware('permission:classes.read');
+    Route::get('/me/teaching-groups', [GroupAttendanceController::class, 'myGroups'])->middleware('permission:attendance.read');
     Route::prefix('student-groups')->group(function () {
         Route::get('/',                         [StudentGroupController::class, 'index'])->middleware('permission:classes.read');
         Route::post('/',                        [StudentGroupController::class, 'store'])->middleware('permission:classes.manage');
@@ -240,6 +242,10 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::patch('/{id}/members/{memberId}', [StudentGroupController::class, 'updateMember'])->middleware('permission:classes.manage');
         Route::delete('/{id}/members/{memberId}', [StudentGroupController::class, 'removeMember'])->middleware('permission:classes.manage');
         Route::put('/{id}/subjects',            [StudentGroupController::class, 'syncSubjects'])->middleware('permission:classes.manage');
+        // Daily attendance (class teacher; see take-group-attendance gate)
+        Route::get('/{id}/attendance',          [GroupAttendanceController::class, 'sheet'])->middleware('permission:attendance.create');
+        Route::put('/{id}/attendance',          [GroupAttendanceController::class, 'save'])->middleware('permission:attendance.create');
+        Route::get('/{id}/attendance/report',   [GroupAttendanceController::class, 'report'])->middleware('permission:attendance.read');
     });
     Route::prefix('subjects')->group(function () {
         Route::get('/',        [SubjectController::class, 'index'])->middleware('permission:classes.read');
