@@ -6,6 +6,8 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Support\Institution;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -78,8 +80,9 @@ class StudentController extends Controller
             'password'      => 'nullable|string|min:8',
             // Profile fields
             'student_id'    => 'required|string|unique:student_profiles,student_id',
-            'department_id' => 'required|exists:departments,id',
-            'program_id'    => 'required|exists:programs,id',
+            // Departments and programs are a university concept
+            'department_id' => [Rule::requiredIf(Institution::isUniversity()), 'nullable', 'exists:departments,id'],
+            'program_id'    => [Rule::requiredIf(Institution::isUniversity()), 'nullable', 'exists:programs,id'],
             'batch'         => 'nullable|string|max:10',
             'semester'      => 'nullable|string|max:20',
             'section'       => 'nullable|string|max:5',

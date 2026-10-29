@@ -149,6 +149,9 @@ return [
 
     'avatar_uploads' => (bool) env('AVATAR_UPLOADS', true),
 
+    // university, school or coaching — see App\Support\Institution
+    'institution_type' => env('INSTITUTION_TYPE', 'university'),
+
     // Personal emails written from inside the system (CommunicationController)
     'mail_daily_limit_per_user' => (int) env('MAIL_DAILY_LIMIT_PER_USER', 20),
     // Comma-separated recipient domains; empty allows any domain

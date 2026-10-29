@@ -6,6 +6,8 @@ use App\Models\FacultyProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Support\Institution;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +76,7 @@ class FacultyController extends Controller
             'gender'            => 'nullable|in:male,female,other',
             'password'          => 'nullable|string|min:8',
             'employee_id'       => 'required|string|unique:faculty_profiles,employee_id',
-            'department_id'     => 'required|exists:departments,id',
+            'department_id'     => [Rule::requiredIf(Institution::isUniversity()), 'nullable', 'exists:departments,id'],
             'designation'       => 'required|string|max:100',
             'employment_type'   => 'nullable|in:full-time,part-time,visiting,adjunct',
             'specialization'    => 'nullable|string|max:255',

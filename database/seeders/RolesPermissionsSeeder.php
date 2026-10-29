@@ -91,6 +91,9 @@ class RolesPermissionsSeeder extends Seeder
             // Personal emails from inside the system
             'communications.send', 'communications.read',
 
+            // Schools and coaching centres: classes, sections, batches, subjects
+            'classes.read', 'classes.manage',
+
             // Settings
             'settings.read', 'settings.edit',
         ];
@@ -125,6 +128,7 @@ class RolesPermissionsSeeder extends Seeder
             'students.read',
             'library.read',
             'notifications.read',
+            'classes.read',
         ]);
 
         // Student

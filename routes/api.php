@@ -27,6 +27,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StudentPortalController;
+use App\Http\Controllers\StudentGroupController;
+use App\Http\Controllers\SubjectController;
+
+Route::get('/app-config', [AuthController::class, 'appConfig']);
 
 Route::prefix('auth')->group(function () {
     Route::get('/demo-roles', [AuthController::class, 'demoRoles']);
@@ -222,6 +226,26 @@ Route::middleware(['auth:sanctum', ReadOnlyDemo::class, RequirePasswordChange::c
         Route::post('/',       [TimetableController::class, 'store'])->middleware('permission:timetable.create');
         Route::put('/{id}',    [TimetableController::class, 'update'])->middleware('permission:timetable.edit');
         Route::delete('/{id}', [TimetableController::class, 'destroy'])->middleware('permission:timetable.delete');
+    });
+
+    // Schools and coaching centres: class levels, sections/batches, subjects
+    Route::get('/class-levels', [StudentGroupController::class, 'levels'])->middleware('permission:classes.read');
+    Route::prefix('student-groups')->group(function () {
+        Route::get('/',                         [StudentGroupController::class, 'index'])->middleware('permission:classes.read');
+        Route::post('/',                        [StudentGroupController::class, 'store'])->middleware('permission:classes.manage');
+        Route::get('/{id}',                     [StudentGroupController::class, 'show'])->middleware('permission:classes.read');
+        Route::put('/{id}',                     [StudentGroupController::class, 'update'])->middleware('permission:classes.manage');
+        Route::delete('/{id}',                  [StudentGroupController::class, 'destroy'])->middleware('permission:classes.manage');
+        Route::post('/{id}/members',            [StudentGroupController::class, 'addMembers'])->middleware('permission:classes.manage');
+        Route::patch('/{id}/members/{memberId}', [StudentGroupController::class, 'updateMember'])->middleware('permission:classes.manage');
+        Route::delete('/{id}/members/{memberId}', [StudentGroupController::class, 'removeMember'])->middleware('permission:classes.manage');
+        Route::put('/{id}/subjects',            [StudentGroupController::class, 'syncSubjects'])->middleware('permission:classes.manage');
+    });
+    Route::prefix('subjects')->group(function () {
+        Route::get('/',        [SubjectController::class, 'index'])->middleware('permission:classes.read');
+        Route::post('/',       [SubjectController::class, 'store'])->middleware('permission:classes.manage');
+        Route::put('/{id}',    [SubjectController::class, 'update'])->middleware('permission:classes.manage');
+        Route::delete('/{id}', [SubjectController::class, 'destroy'])->middleware('permission:classes.manage');
     });
 
     // Personal emails to one person (user, guardian or any address)

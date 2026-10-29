@@ -33,5 +33,10 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             DemoAccountsSeeder::class,      // 18. full records for the demo student/faculty
         ]);
+
+        // Schools and coaching centres also get class levels and subjects
+        if (! \App\Support\Institution::isUniversity()) {
+            $this->call(SchoolStructureSeeder::class);
+        }
     }
 }

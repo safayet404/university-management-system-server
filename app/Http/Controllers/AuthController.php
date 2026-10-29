@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Support\Institution;
 use App\Support\PasswordPolicy;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Password as PasswordBroker;
@@ -66,6 +67,17 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'user'       => $this->formatUser($user),
         ]);
+    }
+
+    // ── GET /api/app-config ───────────────────────────────────
+    // Public facts the frontend needs before sign-in
+    public function appConfig()
+    {
+        return response()->json(['success' => true, 'data' => [
+            'name'             => config('app.name'),
+            'institution_type' => Institution::type(),
+            'demo_roles'       => config('app.demo_roles'),
+        ]]);
     }
 
     // ── GET /api/auth/demo-roles ──────────────────────────────

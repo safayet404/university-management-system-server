@@ -8,6 +8,8 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Traits\LogsPageVisit;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Support\Institution;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -81,7 +83,7 @@ class AdmissionController extends Controller
             'gender'        => 'nullable|in:male,female,other',
             'date_of_birth' => 'nullable|date',
             'program_id'    => 'nullable|exists:programs,id',
-            'department_id' => 'required|exists:departments,id',
+            'department_id' => [Rule::requiredIf(Institution::isUniversity()), 'nullable', 'exists:departments,id'],
             'semester'      => 'required|string',
             'academic_year' => 'required|string',
             'ssc_gpa'       => 'nullable|numeric|min:0|max:5',
